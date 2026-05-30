@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: placement-management
+  datasource:
+    url: jdbc:postgresql://localhost:5432/placement_db
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
+jwt:
+  secret: ${JWT_SECRET:dev-secret-key-min-256-bits-long-for-hs256-algorithm}
+  expiration-ms: 86400000
+
+file:
+  upload-dir: ./uploads
+
+server:
+  port: 8080

@@ -2,11 +2,15 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { useDrive, useUpdateDrive, useDeleteDrive, useUpdateDriveStatus } from '../hooks/useDrives'
 import { useJobPostsByDrive, useCreateJobPost } from '../hooks/useJobPosts'
+import { useApplicationsByDrive, useUpdateApplicationStatus } from '../hooks/useApplications'
 import DriveStatusBadge from '../components/drives/DriveStatusBadge'
 import JobPostCard from '../components/jobposts/JobPostCard'
 import JobPostForm from '../components/jobposts/JobPostForm'
+import ApplicationStatusBadge from '../components/applications/ApplicationStatusBadge'
 import { useState } from 'react'
 import DriveForm from '../components/drives/DriveForm'
+import Spinner from '../components/shared/Spinner'
+import toast from 'react-hot-toast'
 import type { CreateDriveRequest, DriveResponse } from '../types/drive'
 import type { CreateJobPostRequest } from '../types/jobPost'
 
@@ -173,6 +177,65 @@ export default function DriveDetailPage() {
           <JobPostCard key={post.id} post={post} />
         ))}
       </div>
+
+      {isOwner && isPO && <POApplicationReview driveId={drive.id} />}
+    </div>
+  )
+}
+
+function POApplicationReview({ driveId }: { driveId: string }) {
+  const { data: applications, isLoading } = useApplicationsByDrive(driveId)
+  const updateStatus = useUpdateApplicationStatus()
+
+  if (isLoading) return <div className="flex justify-center py-6"><Spinner /></div>
+
+  const grouped = applications?.reduce<Record<string, typeof applications>>((acc, app) => {
+    const key = app.jobPost.title
+    ;(acc[key] ??= []).push(app)
+    return acc
+  }, {}) ?? {}
+
+  const handleStatus = async (appId: string, status: string) => {
+    await updateStatus.mutateAsync({ id: appId, status })
+    toast.success('Status updated')
+  }
+
+  return (
+    <div className="mt-8">
+      <h2 className="text-xl font-semibold mb-4">Applications Overview</h2>
+      {Object.keys(grouped).length === 0 && <p className="text-gray-500 text-sm">No applications yet.</p>}
+      {Object.entries(grouped).map(([title, apps]) => (
+        <div key={title} className="mb-6">
+          <h3 className="font-medium text-lg mb-2">{title} ({apps.length})</h3>
+          <div className="space-y-2">
+            {apps.map((app) => (
+              <div key={app.id} className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{app.student.fullName}</p>
+                  <p className="text-xs text-gray-500">
+                    {app.student.email} · Applied {new Date(app.appliedAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ApplicationStatusBadge status={app.status} />
+                  <select
+                    value={app.status}
+                    onChange={(e) => handleStatus(app.id, e.target.value)}
+                    disabled={updateStatus.isPending}
+                    className="text-xs border rounded px-2 py-1"
+                  >
+                    <option value="APPLIED">Applied</option>
+                    <option value="UNDER_REVIEW">Under Review</option>
+                    <option value="SHORTLISTED">Shortlisted</option>
+                    <option value="ACCEPTED">Accepted</option>
+                    <option value="REJECTED">Rejected</option>
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

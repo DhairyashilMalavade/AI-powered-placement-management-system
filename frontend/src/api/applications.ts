@@ -17,6 +17,11 @@ export async function getApplicationsByJobPost(jobPostId: string): Promise<Appli
   return res.data.data
 }
 
+export async function getApplicationsByDrive(driveId: string): Promise<ApplicationResponse[]> {
+  const res = await apiClient.get<ApiResponse<ApplicationResponse[]>>(`/applications/drive/${driveId}`)
+  return res.data.data
+}
+
 export async function updateApplicationStatus(id: string, status: string): Promise<ApplicationResponse> {
   const res = await apiClient.patch<ApiResponse<ApplicationResponse>>(`/applications/${id}/status`, { status })
   return res.data.data

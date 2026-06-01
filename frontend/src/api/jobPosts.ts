@@ -2,6 +2,11 @@ import apiClient from './client'
 import type { ApiResponse } from '../types/api'
 import type { CreateJobPostRequest, JobPostResponse } from '../types/jobPost'
 
+export async function getMyJobPosts(): Promise<JobPostResponse[]> {
+  const res = await apiClient.get<ApiResponse<JobPostResponse[]>>('/job-posts/my')
+  return res.data.data
+}
+
 export async function getJobPostsByDrive(driveId: string): Promise<JobPostResponse[]> {
   const res = await apiClient.get<ApiResponse<JobPostResponse[]>>(`/job-posts/drive/${driveId}`)
   return res.data.data

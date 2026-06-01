@@ -14,6 +14,8 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
 
     List<Application> findByJobPostIdOrderByAppliedAtDesc(UUID jobPostId);
 
+    List<Application> findByJobPostDriveIdOrderByAppliedAtDesc(UUID driveId);
+
     Optional<Application> findByStudentIdAndJobPostId(UUID studentId, UUID jobPostId);
 
     boolean existsByStudentIdAndJobPostId(UUID studentId, UUID jobPostId);

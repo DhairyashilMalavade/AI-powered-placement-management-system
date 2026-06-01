@@ -5,6 +5,7 @@ import com.dhairya.Placement_management_system.application.dto.CreateApplication
 import com.dhairya.Placement_management_system.common.exception.BusinessException;
 import com.dhairya.Placement_management_system.common.exception.ResourceNotFoundException;
 import com.dhairya.Placement_management_system.drive.Drive;
+import com.dhairya.Placement_management_system.drive.DriveRepository;
 import com.dhairya.Placement_management_system.drive.dto.DriveResponse;
 import com.dhairya.Placement_management_system.jobpost.JobPost;
 import com.dhairya.Placement_management_system.jobpost.JobPostRepository;
@@ -32,17 +33,20 @@ public class ApplicationService {
     private final JobPostRepository jobPostRepository;
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
+    private final DriveRepository driveRepository;
     private final NotificationService notificationService;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               JobPostRepository jobPostRepository,
                               UserRepository userRepository,
                               StudentProfileRepository studentProfileRepository,
+                              DriveRepository driveRepository,
                               NotificationService notificationService) {
         this.applicationRepository = applicationRepository;
         this.jobPostRepository = jobPostRepository;
         this.userRepository = userRepository;
         this.studentProfileRepository = studentProfileRepository;
+        this.driveRepository = driveRepository;
         this.notificationService = notificationService;
     }
 
@@ -108,6 +112,19 @@ public class ApplicationService {
             .collect(Collectors.toList());
     }
 
+    public List<ApplicationResponse> getApplicationsForDrive(UUID driveId, UUID currentUserId) {
+        Drive drive = driveRepository.findById(driveId)
+            .orElseThrow(() -> new ResourceNotFoundException("Drive", "id", driveId));
+
+        if (!drive.getCreatedBy().getId().equals(currentUserId)) {
+            throw new BusinessException("You are not the owner of this drive");
+        }
+
+        return applicationRepository.findByJobPostDriveIdOrderByAppliedAtDesc(driveId).stream()
+            .map(this::toResponse)
+            .collect(Collectors.toList());
+    }
+
     @Transactional
     public ApplicationResponse updateStatus(UUID applicationId, String status, UUID currentUserId) {
         if (!VALID_STATUSES.contains(status)) {
@@ -118,8 +135,13 @@ public class ApplicationService {
             .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
 
         JobPost jobPost = application.getJobPost();
-        if (!jobPost.getRecruiter().getId().equals(currentUserId)) {
-            throw new BusinessException("You are not the recruiter for this job post");
+        Drive drive = jobPost.getDrive();
+
+        boolean isRecruiter = jobPost.getRecruiter().getId().equals(currentUserId);
+        boolean isPO = drive.getCreatedBy().getId().equals(currentUserId);
+
+        if (!isRecruiter && !isPO) {
+            throw new BusinessException("You are not authorized to update this application");
         }
 
         application.setStatus(status);

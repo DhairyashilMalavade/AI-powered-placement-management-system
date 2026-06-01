@@ -7,4 +7,6 @@ import java.util.UUID;
 
 @Repository
 public interface PlacementOfficerProfileRepository extends JpaRepository<PlacementOfficerProfile, UUID> {
+
+    java.util.Optional<PlacementOfficerProfile> findByUserId(UUID userId);
 }

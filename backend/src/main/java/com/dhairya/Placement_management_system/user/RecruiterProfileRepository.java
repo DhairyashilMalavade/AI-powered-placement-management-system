@@ -7,4 +7,6 @@ import java.util.UUID;
 
 @Repository
 public interface RecruiterProfileRepository extends JpaRepository<RecruiterProfile, UUID> {
+
+    java.util.Optional<RecruiterProfile> findByUserId(UUID userId);
 }

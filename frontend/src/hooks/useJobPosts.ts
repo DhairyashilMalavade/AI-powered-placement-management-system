@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getJobPostsByDrive, getJobPost, createJobPost, updateJobPost, deleteJobPost, updateJobPostStatus } from '../api/jobPosts'
+import { getJobPostsByDrive, getJobPost, getMyJobPosts, createJobPost, updateJobPost, deleteJobPost, updateJobPostStatus } from '../api/jobPosts'
 import type { CreateJobPostRequest } from '../types/jobPost'
+
+export function useMyJobPosts() {
+  return useQuery({
+    queryKey: ['job-posts', 'my'],
+    queryFn: getMyJobPosts,
+  })
+}
 
 export function useJobPostsByDrive(driveId: string) {
   return useQuery({

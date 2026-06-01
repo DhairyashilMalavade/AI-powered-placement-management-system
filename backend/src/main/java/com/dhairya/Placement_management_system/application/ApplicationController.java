@@ -39,6 +39,14 @@ public class ApplicationController {
         return ApiResponse.success(applicationService.getMyApplications(userId));
     }
 
+    @GetMapping("/drive/{driveId}")
+    @PreAuthorize("hasRole('PO')")
+    public ApiResponse<List<ApplicationResponse>> getByDrive(@PathVariable UUID driveId,
+                                                              Authentication auth) {
+        UUID userId = (UUID) auth.getPrincipal();
+        return ApiResponse.success(applicationService.getApplicationsForDrive(driveId, userId));
+    }
+
     @GetMapping("/job-post/{jobPostId}")
     @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<List<ApplicationResponse>> getByJobPost(@PathVariable UUID jobPostId,
@@ -48,7 +56,7 @@ public class ApplicationController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('RECRUITER')")
+    @PreAuthorize("hasAnyRole('RECRUITER', 'PO')")
     public ApiResponse<ApplicationResponse> updateStatus(@PathVariable UUID id,
                                                           @RequestBody Map<String, String> body,
                                                           Authentication auth) {

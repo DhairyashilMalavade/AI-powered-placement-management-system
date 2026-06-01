@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getMyApplications, getApplicationsByJobPost, updateApplicationStatus } from '../api/applications'
+import { getMyApplications, getApplicationsByJobPost, getApplicationsByDrive, updateApplicationStatus } from '../api/applications'
 import { createApplication } from '../api/applications'
 
 export function useMyApplications() {
@@ -24,6 +24,14 @@ export function useCreateApplication() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['applications'] })
     },
+  })
+}
+
+export function useApplicationsByDrive(driveId: string) {
+  return useQuery({
+    queryKey: ['applications', 'drive', driveId],
+    queryFn: () => getApplicationsByDrive(driveId),
+    enabled: !!driveId,
   })
 }
 

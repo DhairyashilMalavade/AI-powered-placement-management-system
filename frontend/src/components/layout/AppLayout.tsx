@@ -1,10 +1,12 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { useUnreadCount } from '../../hooks/useNotifications'
 
 export default function AppLayout() {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
   const store = useAuthStore()
+  const { data: unreadCount } = useUnreadCount()
 
   const handleLogout = () => {
     store.logout()
@@ -18,7 +20,10 @@ export default function AppLayout() {
     { to: '/drives', label: 'Drives' },
     ...(role === 'STUDENT' ? [{ to: '/applications', label: 'My Applications' }] : []),
     ...(role === 'PO' || role === 'RECRUITER' ? [{ to: '/applications', label: 'Applications' }] : []),
-    { to: '/notifications', label: 'Notifications' },
+    {
+      to: '/notifications',
+      label: 'Notifications' + (unreadCount && unreadCount > 0 ? ` (${unreadCount})` : ''),
+    },
     { to: '/profile', label: 'Profile' },
   ]
 

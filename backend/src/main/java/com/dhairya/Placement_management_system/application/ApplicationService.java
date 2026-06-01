@@ -10,6 +10,8 @@ import com.dhairya.Placement_management_system.jobpost.JobPost;
 import com.dhairya.Placement_management_system.jobpost.JobPostRepository;
 import com.dhairya.Placement_management_system.jobpost.dto.JobPostResponse;
 import com.dhairya.Placement_management_system.notification.NotificationService;
+import com.dhairya.Placement_management_system.user.StudentProfile;
+import com.dhairya.Placement_management_system.user.StudentProfileRepository;
 import com.dhairya.Placement_management_system.user.User;
 import com.dhairya.Placement_management_system.user.UserRepository;
 import com.dhairya.Placement_management_system.user.dto.UserResponse;
@@ -29,15 +31,18 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final JobPostRepository jobPostRepository;
     private final UserRepository userRepository;
+    private final StudentProfileRepository studentProfileRepository;
     private final NotificationService notificationService;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               JobPostRepository jobPostRepository,
                               UserRepository userRepository,
+                              StudentProfileRepository studentProfileRepository,
                               NotificationService notificationService) {
         this.applicationRepository = applicationRepository;
         this.jobPostRepository = jobPostRepository;
         this.userRepository = userRepository;
+        this.studentProfileRepository = studentProfileRepository;
         this.notificationService = notificationService;
     }
 
@@ -63,10 +68,15 @@ public class ApplicationService {
         User student = userRepository.findById(studentId)
             .orElseThrow(() -> new ResourceNotFoundException("User", "id", studentId));
 
+        StudentProfile profile = studentProfileRepository.findByUserId(studentId).orElse(null);
+
         Application application = new Application();
         application.setStudent(student);
         application.setJobPost(jobPost);
         application.setStatus("APPLIED");
+        if (profile != null && profile.getResumeFilePath() != null) {
+            application.setResumeSnapshotPath(profile.getResumeFilePath());
+        }
         application = applicationRepository.save(application);
 
         // Notify the recruiter

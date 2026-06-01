@@ -6,7 +6,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -60,6 +63,27 @@ class ApplicationControllerTest {
         ResponseEntity<String> resp = rest.exchange(
             "/api/v1/job-posts", HttpMethod.POST, jsonRequest(recToken, body), String.class);
         return objectMapper.readTree(resp.getBody()).get("data").get("id").asText();
+    }
+
+    private HttpEntity<MultiValueMap<String, Object>> multipartRequest(String token, byte[] content) {
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        if (token != null) headers.setBearerAuth(token);
+        var body = new LinkedMultiValueMap<String, Object>();
+        body.add("file", new ByteArrayResource(content) {
+            @Override
+            public String getFilename() { return "resume.pdf"; }
+        });
+        return new HttpEntity<>(body, headers);
+    }
+
+    private String uploadResume(String studentToken) throws Exception {
+        ResponseEntity<String> resp = rest.exchange(
+            "/api/v1/resumes/upload", HttpMethod.POST,
+            multipartRequest(studentToken, "%PDF-1.4 test".getBytes()), String.class);
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+        // Response is the raw filename string, strip surrounding quotes if present
+        return resp.getBody().replaceAll("^\"|\"$", "");
     }
 
     @Test
@@ -132,6 +156,29 @@ class ApplicationControllerTest {
         JsonNode root = objectMapper.readTree(response.getBody());
         assertThat(root.get("data").isArray()).isTrue();
         assertThat(root.get("data").size()).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void application_ShouldIncludeResumeSnapshotPath_WhenResumeUploaded() throws Exception {
+        String poToken = registerUser("PO");
+        String recToken = registerUser("RECRUITER");
+        String studentToken = registerUser("STUDENT");
+
+        String driveId = createDrive(poToken);
+        String jobPostId = createJobPost(recToken, driveId);
+
+        // Upload resume first
+        String filename = uploadResume(studentToken);
+
+        // Apply — should copy the resume path
+        ResponseEntity<String> response = rest.exchange(
+            "/api/v1/applications", HttpMethod.POST,
+            jsonRequest(studentToken, "{\"jobPostId\":\"" + jobPostId + "\"}"), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        JsonNode root = objectMapper.readTree(response.getBody());
+        String snapshot = root.get("data").get("resumeSnapshotPath").asText();
+        assertThat(snapshot).isEqualTo(filename);
     }
 
     @Test

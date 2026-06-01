@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import DrivesPage from './pages/DrivesPage'
+import DriveDetailPage from './pages/DriveDetailPage'
 import ApplicationsPage from './pages/ApplicationsPage'
 import ProfilePage from './pages/ProfilePage'
 import NotificationsPage from './pages/NotificationsPage'
@@ -24,6 +25,7 @@ export default function App() {
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/drives" element={<DrivesPage />} />
+              <Route path="/drives/:id" element={<DriveDetailPage />} />
               <Route path="/applications" element={<ApplicationsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/profile" element={<ProfilePage />} />

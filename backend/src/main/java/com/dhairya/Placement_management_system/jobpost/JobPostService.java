@@ -1,0 +1,137 @@
+package com.dhairya.Placement_management_system.jobpost;
+
+import com.dhairya.Placement_management_system.common.exception.BusinessException;
+import com.dhairya.Placement_management_system.common.exception.ResourceNotFoundException;
+import com.dhairya.Placement_management_system.drive.Drive;
+import com.dhairya.Placement_management_system.drive.DriveRepository;
+import com.dhairya.Placement_management_system.drive.dto.DriveResponse;
+import com.dhairya.Placement_management_system.jobpost.dto.CreateJobPostRequest;
+import com.dhairya.Placement_management_system.jobpost.dto.JobPostResponse;
+import com.dhairya.Placement_management_system.jobpost.dto.UpdateJobPostRequest;
+import com.dhairya.Placement_management_system.user.User;
+import com.dhairya.Placement_management_system.user.UserRepository;
+import com.dhairya.Placement_management_system.user.dto.UserResponse;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class JobPostService {
+
+    private static final List<String> VALID_STATUSES = List.of("OPEN", "FILLED", "CANCELLED");
+
+    private final JobPostRepository jobPostRepository;
+    private final DriveRepository driveRepository;
+    private final UserRepository userRepository;
+
+    public JobPostService(JobPostRepository jobPostRepository,
+                          DriveRepository driveRepository,
+                          UserRepository userRepository) {
+        this.jobPostRepository = jobPostRepository;
+        this.driveRepository = driveRepository;
+        this.userRepository = userRepository;
+    }
+
+    @Transactional
+    public JobPostResponse create(CreateJobPostRequest request, UUID recruiterId) {
+        Drive drive = driveRepository.findById(request.getDriveId())
+            .orElseThrow(() -> new ResourceNotFoundException("Drive", "id", request.getDriveId()));
+        User recruiter = userRepository.findById(recruiterId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", recruiterId));
+
+        JobPost post = new JobPost();
+        post.setDrive(drive);
+        post.setRecruiter(recruiter);
+        post.setTitle(request.getTitle());
+        post.setDescription(request.getDescription());
+        post.setLocation(request.getLocation());
+        post.setSalaryRange(request.getSalaryRange());
+        post.setVacancies(request.getVacancies());
+        post = jobPostRepository.save(post);
+        return toResponse(post);
+    }
+
+    public List<JobPostResponse> getByDrive(UUID driveId) {
+        return jobPostRepository.findByDriveIdOrderByTitleAsc(driveId).stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    public List<JobPostResponse> getMyJobPosts(UUID recruiterId) {
+        return jobPostRepository.findByRecruiterId(recruiterId).stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    public JobPostResponse getById(UUID id) {
+        return toResponse(findById(id));
+    }
+
+    @Transactional
+    public JobPostResponse update(UUID id, UpdateJobPostRequest request, UUID currentUserId) {
+        JobPost post = findById(id);
+        verifyOwner(post, currentUserId);
+
+        if (request.getTitle() != null) post.setTitle(request.getTitle());
+        if (request.getDescription() != null) post.setDescription(request.getDescription());
+        if (request.getLocation() != null) post.setLocation(request.getLocation());
+        if (request.getSalaryRange() != null) post.setSalaryRange(request.getSalaryRange());
+        if (request.getVacancies() != null) post.setVacancies(request.getVacancies());
+
+        post = jobPostRepository.save(post);
+        return toResponse(post);
+    }
+
+    @Transactional
+    public void delete(UUID id, UUID currentUserId) {
+        JobPost post = findById(id);
+        verifyOwner(post, currentUserId);
+        jobPostRepository.delete(post);
+    }
+
+    @Transactional
+    public JobPostResponse updateStatus(UUID id, String status, UUID currentUserId) {
+        if (!VALID_STATUSES.contains(status)) {
+            throw new BusinessException("Invalid status. Accepted: " + VALID_STATUSES);
+        }
+        JobPost post = findById(id);
+        verifyOwner(post, currentUserId);
+        post.setStatus(status);
+        post = jobPostRepository.save(post);
+        return toResponse(post);
+    }
+
+    private JobPost findById(UUID id) {
+        return jobPostRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("JobPost", "id", id));
+    }
+
+    private void verifyOwner(JobPost post, UUID userId) {
+        if (!post.getRecruiter().getId().equals(userId)) {
+            throw new BusinessException("You are not the owner of this job post");
+        }
+    }
+
+    private JobPostResponse toResponse(JobPost post) {
+        Drive drive = post.getDrive();
+        User creator = drive.getCreatedBy();
+        DriveResponse driveResp = new DriveResponse(
+            drive.getId(), drive.getTitle(), drive.getDescription(),
+            drive.getMinGpa(), drive.getAllowedGraduationYears(),
+            drive.getRequiredSkills(), drive.getAdditionalCriteria(),
+            drive.getApplicationDeadline(), drive.getDriveDate(),
+            drive.getStatus(),
+            new UserResponse(creator.getId(), creator.getEmail(), creator.getFullName(), creator.getRole()),
+            drive.getCreatedAt(), drive.getUpdatedAt());
+
+        User recruiter = post.getRecruiter();
+        UserResponse recruiterResp = new UserResponse(
+            recruiter.getId(), recruiter.getEmail(), recruiter.getFullName(), recruiter.getRole());
+
+        return new JobPostResponse(post.getId(), driveResp, recruiterResp,
+            post.getTitle(), post.getDescription(), post.getLocation(),
+            post.getSalaryRange(), post.getVacancies(), post.getStatus());
+    }
+}

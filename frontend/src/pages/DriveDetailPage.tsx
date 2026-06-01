@@ -1,10 +1,14 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { useDrive, useUpdateDrive, useDeleteDrive, useUpdateDriveStatus } from '../hooks/useDrives'
+import { useJobPostsByDrive, useCreateJobPost } from '../hooks/useJobPosts'
 import DriveStatusBadge from '../components/drives/DriveStatusBadge'
+import JobPostCard from '../components/jobposts/JobPostCard'
+import JobPostForm from '../components/jobposts/JobPostForm'
 import { useState } from 'react'
 import DriveForm from '../components/drives/DriveForm'
 import type { CreateDriveRequest, DriveResponse } from '../types/drive'
+import type { CreateJobPostRequest } from '../types/jobPost'
 
 function toCreateRequest(drive: DriveResponse): Partial<CreateDriveRequest> {
   return {
@@ -23,17 +27,21 @@ export default function DriveDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
-  const { data: drive, isLoading } = useDrive(id!)
+  const { data: drive, isLoading: driveLoading } = useDrive(id!)
+  const { data: jobPosts, isLoading: postsLoading } = useJobPostsByDrive(id!)
   const updateDrive = useUpdateDrive()
   const deleteDrive = useDeleteDrive()
   const updateStatus = useUpdateDriveStatus()
+  const createJobPost = useCreateJobPost()
   const [editing, setEditing] = useState(false)
+  const [showJobForm, setShowJobForm] = useState(false)
 
-  if (isLoading) return <p>Loading...</p>
+  if (driveLoading) return <p>Loading...</p>
   if (!drive) return <p>Drive not found.</p>
 
   const isOwner = drive.createdBy.id === user?.id
   const isPO = user?.role === 'PO'
+  const isRecruiter = user?.role === 'RECRUITER'
 
   const handleDelete = async () => {
     if (!confirm('Delete this drive? This will also remove all associated job posts and applications.')) return
@@ -48,6 +56,11 @@ export default function DriveDetailPage() {
   const handleUpdate = async (data: CreateDriveRequest) => {
     await updateDrive.mutateAsync({ id: drive.id, data })
     setEditing(false)
+  }
+
+  const handleCreateJob = async (data: CreateJobPostRequest) => {
+    await createJobPost.mutateAsync(data)
+    setShowJobForm(false)
   }
 
   return (
@@ -86,15 +99,11 @@ export default function DriveDetailPage() {
       {editing && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="font-semibold mb-4">Edit Drive</h2>
-          <DriveForm
-            defaultValues={toCreateRequest(drive)}
-            onSubmit={handleUpdate}
-            loading={updateDrive.isPending}
-          />
+          <DriveForm defaultValues={toCreateRequest(drive)} onSubmit={handleUpdate} loading={updateDrive.isPending} />
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow p-6 space-y-4">
+      <div className="bg-white rounded-lg shadow p-6 mb-6 space-y-4">
         {drive.description && (
           <div>
             <h3 className="text-sm font-medium text-gray-500">Description</h3>
@@ -135,6 +144,34 @@ export default function DriveDetailPage() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Job Posts</h2>
+        {isRecruiter && drive.status === 'ACTIVE' && (
+          <button onClick={() => setShowJobForm(!showJobForm)} className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
+            {showJobForm ? 'Cancel' : 'Post a Job'}
+          </button>
+        )}
+      </div>
+
+      {showJobForm && (
+        <div className="bg-white rounded-lg shadow p-4 mb-4">
+          <h3 className="font-medium mb-3">New Job Post</h3>
+          <JobPostForm driveId={drive.id} onSubmit={handleCreateJob} loading={createJobPost.isPending} />
+        </div>
+      )}
+
+      {postsLoading && <p className="text-gray-500 text-sm">Loading job posts...</p>}
+
+      {jobPosts && jobPosts.length === 0 && (
+        <p className="text-gray-500 text-sm">No job posts yet.</p>
+      )}
+
+      <div className="space-y-3">
+        {jobPosts?.map((post) => (
+          <JobPostCard key={post.id} post={post} />
+        ))}
       </div>
     </div>
   )

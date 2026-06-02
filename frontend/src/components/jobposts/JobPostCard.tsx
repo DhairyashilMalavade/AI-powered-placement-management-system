@@ -1,24 +1,45 @@
+import { useState } from 'react'
 import type { JobPostResponse } from '../../types/jobPost'
+import type { CreateJobPostRequest } from '../../types/jobPost'
 import JobPostStatusBadge from './JobPostStatusBadge'
+import JobPostForm from './JobPostForm'
 import { useAuthStore } from '../../store/authStore'
-import { useDeleteJobPost, useUpdateJobPostStatus } from '../../hooks/useJobPosts'
+import { useDeleteJobPost, useUpdateJobPostStatus, useUpdateJobPost } from '../../hooks/useJobPosts'
 import { useCreateApplication } from '../../hooks/useApplications'
-import { useQueryClient } from '@tanstack/react-query'
 
 export default function JobPostCard({ post }: { post: JobPostResponse }) {
   const user = useAuthStore((s) => s.user)
-  const qc = useQueryClient()
+  const [editing, setEditing] = useState(false)
   const deletePost = useDeleteJobPost()
   const updateStatus = useUpdateJobPostStatus()
+  const updateJobPost = useUpdateJobPost()
   const apply = useCreateApplication()
   const isOwner = post.recruiter.id === user?.id
   const isRecruiter = user?.role === 'RECRUITER'
   const isStudent = user?.role === 'STUDENT'
 
   const handleApply = () => {
-    apply.mutate(post.id, {
-      onSuccess: () => qc.invalidateQueries({ queryKey: ['applications'] }),
-    })
+    apply.mutate(post.id)
+  }
+
+  const handleEdit = async (data: CreateJobPostRequest) => {
+    await updateJobPost.mutateAsync({ id: post.id, data })
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="bg-white rounded-lg shadow p-4">
+        <h4 className="font-medium mb-3">Edit Job Post</h4>
+        <JobPostForm
+          defaultValues={post}
+          onSubmit={handleEdit}
+          loading={updateJobPost.isPending}
+          submitLabel="Save Changes"
+        />
+        <button onClick={() => setEditing(false)} className="mt-2 text-xs text-gray-500 hover:underline">Cancel</button>
+      </div>
+    )
   }
 
   return (
@@ -51,6 +72,12 @@ export default function JobPostCard({ post }: { post: JobPostResponse }) {
         )}
         {isOwner && isRecruiter && (
           <>
+            <button
+              onClick={() => setEditing(true)}
+              className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
+            >
+              Edit
+            </button>
             {post.status === 'OPEN' && (
               <button
                 onClick={() => updateStatus.mutate({ id: post.id, status: 'FILLED' })}

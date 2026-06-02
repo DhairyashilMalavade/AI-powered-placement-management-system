@@ -1,13 +1,18 @@
 package com.dhairya.Placement_management_system.drive;
 
+import com.dhairya.Placement_management_system.application.ApplicationRepository;
+import com.dhairya.Placement_management_system.common.dto.PagedResponse;
 import com.dhairya.Placement_management_system.common.exception.BusinessException;
 import com.dhairya.Placement_management_system.common.exception.ResourceNotFoundException;
 import com.dhairya.Placement_management_system.drive.dto.CreateDriveRequest;
 import com.dhairya.Placement_management_system.drive.dto.DriveResponse;
 import com.dhairya.Placement_management_system.drive.dto.UpdateDriveRequest;
+import com.dhairya.Placement_management_system.resume.FileStorageService;
 import com.dhairya.Placement_management_system.user.User;
 import com.dhairya.Placement_management_system.user.UserRepository;
 import com.dhairya.Placement_management_system.user.dto.UserResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,10 +26,16 @@ public class DriveService {
 
     private final DriveRepository driveRepository;
     private final UserRepository userRepository;
+    private final ApplicationRepository applicationRepository;
+    private final FileStorageService fileStorageService;
 
-    public DriveService(DriveRepository driveRepository, UserRepository userRepository) {
+    public DriveService(DriveRepository driveRepository, UserRepository userRepository,
+                        ApplicationRepository applicationRepository,
+                        FileStorageService fileStorageService) {
         this.driveRepository = driveRepository;
         this.userRepository = userRepository;
+        this.applicationRepository = applicationRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     @Transactional
@@ -46,10 +57,24 @@ public class DriveService {
         return toResponse(drive);
     }
 
-    public List<DriveResponse> getAll() {
-        return driveRepository.findAllByOrderByCreatedAtDesc().stream()
-            .map(this::toResponse)
-            .toList();
+    public PagedResponse<DriveResponse> getAll(String search, String status, Pageable pageable) {
+        Page<DriveResponse> page;
+        boolean hasSearch = search != null && !search.isBlank();
+        boolean hasStatus = status != null && !status.isBlank();
+        if (hasSearch && hasStatus) {
+            page = driveRepository.searchByTitleAndStatus(search, status, pageable)
+                .map(this::toResponse);
+        } else if (hasSearch) {
+            page = driveRepository.searchByTitle(search, pageable)
+                .map(this::toResponse);
+        } else if (hasStatus) {
+            page = driveRepository.findByStatus(status, pageable)
+                .map(this::toResponse);
+        } else {
+            page = driveRepository.findAllByOrderByCreatedAtDesc(pageable)
+                .map(this::toResponse);
+        }
+        return PagedResponse.from(page);
     }
 
     public DriveResponse getById(UUID id) {
@@ -79,6 +104,12 @@ public class DriveService {
     public void delete(UUID id, UUID currentUserId) {
         Drive drive = findById(id);
         verifyOwner(drive, currentUserId);
+
+        List<String> resumePaths = applicationRepository.findResumePathsByDriveId(id);
+        for (String path : resumePaths) {
+            fileStorageService.delete(path);
+        }
+
         driveRepository.delete(drive);
     }
 
@@ -95,7 +126,7 @@ public class DriveService {
     }
 
     private Drive findById(UUID id) {
-        return driveRepository.findById(id)
+        return driveRepository.findByIdWithCreator(id)
             .orElseThrow(() -> new ResourceNotFoundException("Drive", "id", id));
     }
 
@@ -107,7 +138,7 @@ public class DriveService {
 
     private DriveResponse toResponse(Drive drive) {
         User creator = drive.getCreatedBy();
-        UserResponse creatorResponse = new UserResponse(creator.getId(), creator.getEmail(), creator.getFullName(), creator.getRole());
+        UserResponse creatorResponse = new UserResponse(creator.getId(), creator.getEmail(), creator.getFullName(), creator.getRole(), creator.isActive());
         return new DriveResponse(
             drive.getId(),
             drive.getTitle(),

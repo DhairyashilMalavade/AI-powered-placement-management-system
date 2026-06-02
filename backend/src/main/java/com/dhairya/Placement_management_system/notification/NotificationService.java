@@ -1,16 +1,18 @@
 package com.dhairya.Placement_management_system.notification;
 
+import com.dhairya.Placement_management_system.common.dto.PagedResponse;
+import com.dhairya.Placement_management_system.common.exception.BusinessException;
 import com.dhairya.Placement_management_system.common.exception.ResourceNotFoundException;
 import com.dhairya.Placement_management_system.notification.dto.NotificationResponse;
 import com.dhairya.Placement_management_system.user.User;
 import com.dhairya.Placement_management_system.user.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class NotificationService {
@@ -26,6 +28,11 @@ public class NotificationService {
 
     @Transactional
     public NotificationResponse create(UUID userId, String title, String message) {
+        return create(userId, title, message, null);
+    }
+
+    @Transactional
+    public NotificationResponse create(UUID userId, String title, String message, String linkUrl) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
@@ -33,15 +40,16 @@ public class NotificationService {
         notification.setUser(user);
         notification.setTitle(title);
         notification.setMessage(message);
+        notification.setLinkUrl(linkUrl);
         notification = notificationRepository.save(notification);
 
         return toResponse(notification);
     }
 
-    public List<NotificationResponse> getMyNotifications(UUID userId) {
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
+    public PagedResponse<NotificationResponse> getMyNotifications(UUID userId, Pageable pageable) {
+        Page<NotificationResponse> page = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
+            .map(this::toResponse);
+        return PagedResponse.from(page);
     }
 
     public long getUnreadCount(UUID userId) {
@@ -54,7 +62,7 @@ public class NotificationService {
             .orElseThrow(() -> new ResourceNotFoundException("Notification", "id", notificationId));
 
         if (!notification.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Notification does not belong to this user");
+            throw new BusinessException("Notification does not belong to this user");
         }
 
         notification.setRead(true);
@@ -76,6 +84,7 @@ public class NotificationService {
             notification.getTitle(),
             notification.getMessage(),
             notification.isRead(),
+            notification.getLinkUrl(),
             notification.getCreatedAt());
     }
 }

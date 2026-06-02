@@ -42,8 +42,9 @@ export default function RegisterPage() {
         <h1 className="text-2xl font-bold mb-6 text-center">Create Account</h1>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Full Name</label>
+            <label htmlFor="fullName" className="block text-sm font-medium mb-1">Full Name</label>
             <input
+              id="fullName"
               type="text"
               {...register('fullName')}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -51,8 +52,9 @@ export default function RegisterPage() {
             {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label htmlFor="reg-email" className="block text-sm font-medium mb-1">Email</label>
             <input
+              id="reg-email"
               type="email"
               {...register('email')}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -60,8 +62,9 @@ export default function RegisterPage() {
             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Role</label>
+            <label htmlFor="role" className="block text-sm font-medium mb-1">Role</label>
             <select
+              id="role"
               {...register('role')}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
@@ -73,8 +76,9 @@ export default function RegisterPage() {
             {errors.role && <p className="text-red-500 text-sm mt-1">{errors.role.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label htmlFor="reg-password" className="block text-sm font-medium mb-1">Password</label>
             <input
+              id="reg-password"
               type="password"
               {...register('password')}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -82,8 +86,9 @@ export default function RegisterPage() {
             {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Confirm Password</label>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">Confirm Password</label>
             <input
+              id="confirmPassword"
               type="password"
               {...register('confirmPassword')}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

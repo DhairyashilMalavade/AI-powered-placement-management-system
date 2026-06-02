@@ -1,13 +1,11 @@
 package com.dhairya.Placement_management_system;
 
+import com.dhairya.Placement_management_system.common.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class PlacementManagementSystemApplicationTests {
+class PlacementManagementSystemApplicationTests extends AbstractIntegrationTest {
 
-	@Test
-	void contextLoads() {
-	}
-
+    @Test
+    void contextLoads() {
+    }
 }

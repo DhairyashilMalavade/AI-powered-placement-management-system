@@ -31,8 +31,9 @@ export default function LoginPage() {
         <h1 className="text-2xl font-bold mb-6 text-center">Sign In</h1>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
             <input
+              id="email"
               type="email"
               {...register('email')}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -40,8 +41,9 @@ export default function LoginPage() {
             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label htmlFor="password" className="block text-sm font-medium mb-1">Password</label>
             <input
+              id="password"
               type="password"
               {...register('password')}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

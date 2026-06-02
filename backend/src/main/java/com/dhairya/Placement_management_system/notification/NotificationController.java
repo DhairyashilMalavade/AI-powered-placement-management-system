@@ -1,13 +1,15 @@
 package com.dhairya.Placement_management_system.notification;
 
 import com.dhairya.Placement_management_system.common.dto.ApiResponse;
+import com.dhairya.Placement_management_system.common.dto.PagedResponse;
 import com.dhairya.Placement_management_system.notification.dto.NotificationResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -23,9 +25,10 @@ public class NotificationController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<List<NotificationResponse>> getMy(Authentication auth) {
+    public ApiResponse<PagedResponse<NotificationResponse>> getMy(Authentication auth,
+                                                                   @PageableDefault(size = 50) Pageable pageable) {
         UUID userId = (UUID) auth.getPrincipal();
-        return ApiResponse.success(notificationService.getMyNotifications(userId));
+        return ApiResponse.success(notificationService.getMyNotifications(userId, pageable));
     }
 
     @GetMapping("/unread-count")

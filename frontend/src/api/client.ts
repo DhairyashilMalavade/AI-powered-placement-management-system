@@ -1,4 +1,6 @@
 import axios from 'axios'
+import { toast } from 'react-hot-toast'
+import { useAuthStore } from '../store/authStore'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1',
@@ -26,8 +28,9 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('auth-storage')
+    if (error.response?.status === 401 && window.location.pathname !== '/login') {
+      useAuthStore.getState().logout()
+      toast.error('Session expired. Please sign in again.')
       window.location.href = '/login'
     }
     return Promise.reject(error)

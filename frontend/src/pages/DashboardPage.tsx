@@ -1,9 +1,11 @@
 import { useAuthStore } from '../store/authStore'
+import Skeleton from '../components/shared/Skeleton'
 import { useMyApplications } from '../hooks/useApplications'
 import { useMyProfile } from '../hooks/useProfile'
 import { useNotifications } from '../hooks/useNotifications'
 import { useMyJobPosts } from '../hooks/useJobPosts'
 import { useDrives } from '../hooks/useDrives'
+import { useStats } from '../hooks/useAdmin'
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user)
@@ -23,16 +25,20 @@ export default function DashboardPage() {
 }
 
 function StudentDashboard() {
-  const { data: applications, isLoading: appsLoading } = useMyApplications()
-  const { data: profile } = useMyProfile()
-  const { data: notifications } = useNotifications()
+  const { data: appsPage, isLoading: appsLoading, isError: appsError } = useMyApplications()
+  const { data: profile, isError: profileError } = useMyProfile()
+  const { data: notifsPage } = useNotifications()
 
-  const unread = notifications?.filter((n) => !n.isRead).length ?? 0
-  const activeApps = applications?.filter((a) => a.status !== 'WITHDRAWN').length ?? 0
+  if (appsError || profileError) return <p className="text-red-600 text-sm">Failed to load dashboard data.</p>
+
+  const notifications = notifsPage?.content ?? []
+  const applications = appsPage?.content ?? []
+  const unread = notifications.filter((n) => !n.isRead).length
+  const activeApps = applications.filter((a) => a.status !== 'WITHDRAWN').length
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <StatCard title="Applications" value={appsLoading ? '...' : String(activeApps)} label="Active applications" />
+      <StatCard title="Applications" value={appsLoading ? <Skeleton width="3rem" className="inline-block" /> : String(activeApps)} label="Active applications" />
       <StatCard title="Unread Notifications" value={String(unread)} label="Pending notifications" />
       <StatCard title="Resume" value={profile?.resumeFilePath ? 'Yes' : 'No'} label={profile?.resumeFilePath ? 'Uploaded' : 'Not uploaded'} />
     </div>
@@ -40,30 +46,37 @@ function StudentDashboard() {
 }
 
 function RecruiterDashboard() {
-  const { data: jobPosts, isLoading } = useMyJobPosts()
-  const { data: drives } = useDrives()
+  const { data: jobPostsPage, isLoading, isError } = useMyJobPosts()
+  const { data: drivesPage, isError: drivesError } = useDrives()
 
-  const activePosts = jobPosts?.filter((jp) => jp.status === 'OPEN').length ?? 0
+  if (isError || drivesError) return <p className="text-red-600 text-sm">Failed to load dashboard data.</p>
+
+  const jobPosts = jobPostsPage?.content ?? []
+  const drives = drivesPage?.content ?? []
+  const activePosts = jobPosts.filter((jp) => jp.status === 'OPEN').length
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <StatCard title="Your Job Posts" value={isLoading ? '...' : String(jobPosts?.length ?? 0)} label="Total posts" />
+      <StatCard title="Your Job Posts" value={isLoading ? <Skeleton width="3rem" className="inline-block" /> : String(jobPosts.length)} label="Total posts" />
       <StatCard title="Open Positions" value={String(activePosts)} label="Currently accepting applications" />
-      <StatCard title="Active Drives" value={String(drives?.filter((d) => d.status === 'ACTIVE').length ?? 0)} label="Drives you can post in" />
+      <StatCard title="Active Drives" value={String(drives.filter((d) => d.status === 'ACTIVE').length)} label="Drives you can post in" />
     </div>
   )
 }
 
 function PODashboard() {
-  const { data: drives, isLoading } = useDrives()
+  const { data: drivesPage, isLoading, isError } = useDrives()
 
-  const active = drives?.filter((d) => d.status === 'ACTIVE').length ?? 0
-  const draft = drives?.filter((d) => d.status === 'DRAFT').length ?? 0
-  const closed = drives?.filter((d) => d.status === 'CLOSED' || d.status === 'COMPLETED').length ?? 0
+  if (isError) return <p className="text-red-600 text-sm">Failed to load dashboard data.</p>
+
+  const drives = drivesPage?.content ?? []
+  const active = drives.filter((d) => d.status === 'ACTIVE').length
+  const draft = drives.filter((d) => d.status === 'DRAFT').length
+  const closed = drives.filter((d) => d.status === 'CLOSED' || d.status === 'COMPLETED').length
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <StatCard title="Total Drives" value={isLoading ? '...' : String(drives?.length ?? 0)} label="All drives" />
+      <StatCard title="Total Drives" value={isLoading ? <Skeleton width="3rem" className="inline-block" /> : String(drives.length)} label="All drives" />
       <StatCard title="Active" value={String(active)} label="Currently active" />
       <StatCard title="Draft / Closed" value={`${draft} / ${closed}`} label="Awaiting / Finished" />
     </div>
@@ -71,16 +84,20 @@ function PODashboard() {
 }
 
 function AdminDashboard() {
+  const { data: stats, isLoading, isError } = useStats()
+
+  if (isError) return <p className="text-red-600 text-sm">Failed to load dashboard data.</p>
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <StatCard title="Users" value="—" label="User management" />
-      <StatCard title="Drives" value="—" label="Drive overview" />
-      <StatCard title="System" value="Healthy" label="All systems operational" />
+      <StatCard title="Total Users" value={isLoading ? <Skeleton width="3rem" className="inline-block" /> : String(stats?.totalUsers ?? 0)} label={`${stats?.totalStudents ?? 0} students, ${stats?.totalRecruiters ?? 0} recruiters, ${stats?.totalPOs ?? 0} POs`} />
+      <StatCard title="Active Drives" value={isLoading ? <Skeleton width="3rem" className="inline-block" /> : String(stats?.activeDrives ?? 0)} label={`${stats?.totalJobPosts ?? 0} total job posts`} />
+      <StatCard title="Applications" value={isLoading ? <Skeleton width="3rem" className="inline-block" /> : String(stats?.totalApplications ?? 0)} label={`${stats?.appliedApplications ?? 0} pending · ${stats?.acceptedApplications ?? 0} accepted · ${stats?.rejectedApplications ?? 0} rejected`} />
     </div>
   )
 }
 
-function StatCard({ title, value, label }: { title: string; value: string; label: string }) {
+function StatCard({ title, value, label }: { title: string; value: React.ReactNode; label: string }) {
   return (
     <div className="bg-white p-5 rounded-lg shadow">
       <h2 className="text-sm font-medium text-gray-500">{title}</h2>

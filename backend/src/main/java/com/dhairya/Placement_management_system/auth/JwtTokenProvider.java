@@ -26,13 +26,14 @@ public class JwtTokenProvider {
         this.expirationMs = expirationMs;
     }
 
-    public String generateToken(UUID userId, String role) {
+    public String generateToken(UUID userId, String role, boolean active) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
 
         return Jwts.builder()
             .subject(userId.toString())
             .claim("role", role)
+            .claim("active", active)
             .issuedAt(now)
             .expiration(expiry)
             .signWith(secretKey)
@@ -43,6 +44,20 @@ public class JwtTokenProvider {
         try {
             Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token);
             return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    public boolean isTokenActive(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+            Boolean active = claims.get("active", Boolean.class);
+            return active == null || active;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }

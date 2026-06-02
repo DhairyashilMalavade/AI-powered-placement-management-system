@@ -1,5 +1,6 @@
 package com.dhairya.Placement_management_system.jobpost.dto;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,6 +23,6 @@ public class UpdateJobPostRequest {
     @Size(max = 100)
     private String salaryRange;
 
-    @Size(min = 1)
+    @Min(1)
     private Integer vacancies;
 }

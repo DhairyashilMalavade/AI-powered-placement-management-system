@@ -8,10 +8,16 @@ import toast from 'react-hot-toast'
 export default function ProfilePage() {
   const user = useAuthStore((s) => s.user)
   const role = user?.role ?? 'STUDENT'
-  const { data: profile, isLoading } = useMyProfile()
+  const { data: profile, isLoading, isError, refetch } = useMyProfile()
   const uploadResume = useUploadResume()
 
   if (isLoading) return <div className="flex justify-center py-10"><Spinner size="lg" /></div>
+  if (isError) return (
+    <div className="text-center py-10">
+      <p className="text-red-600 mb-2">Failed to load profile.</p>
+      <button onClick={() => refetch()} className="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Try again</button>
+    </div>
+  )
   if (!profile) return <p className="text-gray-500">Profile not found.</p>
 
   return (
@@ -79,8 +85,24 @@ function StudentProfileSection({ profile }: { profile: import('../types/profile'
   const [gpa, setGpa] = useState(profile.gpa?.toString() ?? '')
   const [skills, setSkills] = useState(profile.skills?.join(', ') ?? '')
   const [phone, setPhone] = useState(profile.phone ?? '')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const validate = () => {
+    const errs: Record<string, string> = {}
+    if (!collegeName.trim()) errs.collegeName = 'College name is required'
+    const year = parseInt(String(graduationYear))
+    if (isNaN(year) || year < 1900 || year > 2100) errs.graduationYear = 'Enter a valid year (1900–2100)'
+    if (gpa) {
+      const g = parseFloat(gpa)
+      if (isNaN(g) || g < 0 || g > 10) errs.gpa = 'GPA must be between 0 and 10'
+    }
+    if (phone && !/^\+?[\d\s\-()]{7,20}$/.test(phone)) errs.phone = 'Enter a valid phone number'
+    setErrors(errs)
+    return Object.keys(errs).length === 0
+  }
 
   const handleSave = async () => {
+    if (!validate()) return
     await updateMutation.mutateAsync({
       collegeName,
       graduationYear,
@@ -118,12 +140,12 @@ function StudentProfileSection({ profile }: { profile: import('../types/profile'
     <section>
       <h2 className="text-lg font-semibold mb-3">Edit Student Details</h2>
       <div className="space-y-3">
-        <Input label="College" value={collegeName} onChange={setCollegeName} />
-        <Input label="Graduation Year" type="number" value={String(graduationYear)} onChange={(v) => setGraduationYear(parseInt(v) || new Date().getFullYear())} />
+        <Input label="College" value={collegeName} onChange={setCollegeName} error={errors.collegeName} />
+        <Input label="Graduation Year" type="number" value={String(graduationYear)} onChange={(v) => setGraduationYear(parseInt(v) || new Date().getFullYear())} error={errors.graduationYear} />
         <Input label="Major" value={major} onChange={setMajor} />
-        <Input label="GPA" value={gpa} onChange={setGpa} />
+        <Input label="GPA" value={gpa} onChange={setGpa} error={errors.gpa} />
         <Input label="Skills (comma-separated)" value={skills} onChange={setSkills} />
-        <Input label="Phone" value={phone} onChange={setPhone} />
+        <Input label="Phone" value={phone} onChange={setPhone} error={errors.phone} />
         <div className="flex gap-2">
           <button onClick={handleSave} disabled={updateMutation.isPending} className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
             {updateMutation.isPending ? 'Saving...' : 'Save'}
@@ -141,8 +163,18 @@ function RecruiterProfileSection({ profile }: { profile: import('../types/profil
   const [companyName, setCompanyName] = useState(profile.companyName ?? '')
   const [companyWebsite, setCompanyWebsite] = useState(profile.companyWebsite ?? '')
   const [companyDescription, setCompanyDescription] = useState(profile.companyDescription ?? '')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const validate = () => {
+    const errs: Record<string, string> = {}
+    if (!companyName.trim()) errs.companyName = 'Company name is required'
+    if (companyWebsite && !/^https?:\/\/.+/.test(companyWebsite)) errs.companyWebsite = 'Enter a valid URL (e.g. https://example.com)'
+    setErrors(errs)
+    return Object.keys(errs).length === 0
+  }
 
   const handleSave = async () => {
+    if (!validate()) return
     await updateMutation.mutateAsync({ companyName, companyWebsite, companyDescription })
     toast.success('Profile updated')
     setEditing(false)
@@ -168,8 +200,8 @@ function RecruiterProfileSection({ profile }: { profile: import('../types/profil
     <section>
       <h2 className="text-lg font-semibold mb-3">Edit Company Details</h2>
       <div className="space-y-3">
-        <Input label="Company Name" value={companyName} onChange={setCompanyName} />
-        <Input label="Website" value={companyWebsite} onChange={setCompanyWebsite} />
+        <Input label="Company Name" value={companyName} onChange={setCompanyName} error={errors.companyName} />
+        <Input label="Website" value={companyWebsite} onChange={setCompanyWebsite} error={errors.companyWebsite} />
         <Input label="Description" value={companyDescription} onChange={setCompanyDescription} />
         <div className="flex gap-2">
           <button onClick={handleSave} disabled={updateMutation.isPending} className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
@@ -187,8 +219,17 @@ function POProfileSection({ profile }: { profile: import('../types/profile').Pro
   const [editing, setEditing] = useState(false)
   const [collegeName, setCollegeName] = useState(profile.collegeName ?? '')
   const [department, setDepartment] = useState(profile.department ?? '')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const validate = () => {
+    const errs: Record<string, string> = {}
+    if (!collegeName.trim()) errs.collegeName = 'College name is required'
+    setErrors(errs)
+    return Object.keys(errs).length === 0
+  }
 
   const handleSave = async () => {
+    if (!validate()) return
     await updateMutation.mutateAsync({ collegeName, department })
     toast.success('Profile updated')
     setEditing(false)
@@ -213,7 +254,7 @@ function POProfileSection({ profile }: { profile: import('../types/profile').Pro
     <section>
       <h2 className="text-lg font-semibold mb-3">Edit PO Details</h2>
       <div className="space-y-3">
-        <Input label="College Name" value={collegeName} onChange={setCollegeName} />
+        <Input label="College Name" value={collegeName} onChange={setCollegeName} error={errors.collegeName} />
         <Input label="Department" value={department} onChange={setDepartment} />
         <div className="flex gap-2">
           <button onClick={handleSave} disabled={updateMutation.isPending} className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
@@ -226,15 +267,16 @@ function POProfileSection({ profile }: { profile: import('../types/profile').Pro
   )
 }
 
-function Input({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
+function Input({ label, value, onChange, type = 'text', error }: { label: string; value: string; onChange: (v: string) => void; type?: string; error?: string }) {
   return (
     <div>
       <label className="block text-sm font-medium mb-1">{label}</label>
       {type === 'textarea' ? (
         <textarea value={value} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" rows={3} />
       ) : (
-        <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" />
+        <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className={`w-full px-3 py-2 border rounded-lg text-sm ${error ? 'border-red-500' : ''}`} />
       )}
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
   )
 }

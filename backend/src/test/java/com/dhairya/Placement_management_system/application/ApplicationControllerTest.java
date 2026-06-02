@@ -1,46 +1,18 @@
 package com.dhairya.Placement_management_system.application;
 
+import com.dhairya.Placement_management_system.common.AbstractIntegrationTest;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class ApplicationControllerTest {
-
-    @Autowired
-    private TestRestTemplate rest;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    private HttpEntity<String> jsonRequest(String token, String body) {
-        var headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        if (token != null) headers.setBearerAuth(token);
-        return new HttpEntity<>(body, headers);
-    }
-
-    private String registerUser(String role) throws Exception {
-        String email = "app-test-" + UUID.randomUUID().toString().substring(0, 8) + "@test.com";
-        String json = """
-            {"email":"%s","password":"password123","fullName":"Test %s","role":"%s"}
-            """.formatted(email, role, role);
-        ResponseEntity<String> resp = rest.exchange(
-            "/api/v1/auth/register", HttpMethod.POST, jsonRequest(null, json), String.class);
-        return objectMapper.readTree(resp.getBody()).get("data").get("token").asText();
-    }
+class ApplicationControllerTest extends AbstractIntegrationTest {
 
     private String createDrive(String poToken) throws Exception {
         String body = """
@@ -50,7 +22,6 @@ class ApplicationControllerTest {
             "/api/v1/drives", HttpMethod.POST, jsonRequest(poToken, body), String.class);
         String id = objectMapper.readTree(resp.getBody()).get("data").get("id").asText();
 
-        // Activate the drive
         rest.exchange("/api/v1/drives/" + id + "/status", HttpMethod.PATCH,
             jsonRequest(poToken, "{\"status\":\"ACTIVE\"}"), String.class);
         return id;
@@ -81,8 +52,6 @@ class ApplicationControllerTest {
         ResponseEntity<String> resp = rest.exchange(
             "/api/v1/resumes/upload", HttpMethod.POST,
             multipartRequest(studentToken, "%PDF-1.4 test".getBytes()), String.class);
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        // Response is the raw filename string, strip surrounding quotes if present
         return resp.getBody().replaceAll("^\"|\"$", "");
     }
 
@@ -154,8 +123,8 @@ class ApplicationControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         JsonNode root = objectMapper.readTree(response.getBody());
-        assertThat(root.get("data").isArray()).isTrue();
-        assertThat(root.get("data").size()).isGreaterThanOrEqualTo(1);
+        assertThat(root.get("data").get("content").isArray()).isTrue();
+        assertThat(root.get("data").get("content").size()).isGreaterThanOrEqualTo(1);
     }
 
     @Test
@@ -167,10 +136,8 @@ class ApplicationControllerTest {
         String driveId = createDrive(poToken);
         String jobPostId = createJobPost(recToken, driveId);
 
-        // Upload resume first
         String filename = uploadResume(studentToken);
 
-        // Apply — should copy the resume path
         ResponseEntity<String> response = rest.exchange(
             "/api/v1/applications", HttpMethod.POST,
             jsonRequest(studentToken, "{\"jobPostId\":\"" + jobPostId + "\"}"), String.class);

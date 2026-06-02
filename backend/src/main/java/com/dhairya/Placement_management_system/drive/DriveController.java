@@ -1,16 +1,18 @@
 package com.dhairya.Placement_management_system.drive;
 
 import com.dhairya.Placement_management_system.common.dto.ApiResponse;
+import com.dhairya.Placement_management_system.common.dto.PagedResponse;
 import com.dhairya.Placement_management_system.drive.dto.CreateDriveRequest;
 import com.dhairya.Placement_management_system.drive.dto.DriveResponse;
 import com.dhairya.Placement_management_system.drive.dto.UpdateDriveRequest;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -34,8 +36,11 @@ public class DriveController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<List<DriveResponse>> getAll() {
-        return ApiResponse.success(driveService.getAll());
+    public ApiResponse<PagedResponse<DriveResponse>> getAll(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ApiResponse.success(driveService.getAll(search, status, pageable));
     }
 
     @GetMapping("/{id}")

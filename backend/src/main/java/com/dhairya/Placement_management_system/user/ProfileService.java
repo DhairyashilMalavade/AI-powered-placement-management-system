@@ -41,7 +41,7 @@ public class ProfileService {
                     .orElseThrow(() -> new ResourceNotFoundException("RecruiterProfile", "userId", userId));
                 yield ProfileResponse.from(p);
             }
-            case "PO" -> {
+            case "PO", "ADMIN" -> {
                 PlacementOfficerProfile p = placementOfficerProfileRepository.findByUserId(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("PlacementOfficerProfile", "userId", userId));
                 yield ProfileResponse.from(p);

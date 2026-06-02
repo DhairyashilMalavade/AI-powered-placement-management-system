@@ -3,6 +3,7 @@ export interface UserResponse {
   email: string
   fullName: string
   role: 'STUDENT' | 'PO' | 'RECRUITER' | 'ADMIN'
+  active: boolean
 }
 
 export interface LoginRequest {

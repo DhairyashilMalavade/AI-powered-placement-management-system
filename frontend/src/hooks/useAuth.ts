@@ -1,31 +1,47 @@
 import { useMutation } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { login as loginApi, register as registerApi } from '../api/auth'
 import { useAuthStore } from '../store/authStore'
+import toast from 'react-hot-toast'
 import type { LoginRequest, RegisterRequest } from '../types/user'
 
-export function useLogin() {
+function useRedirectAfterAuth() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const state = location.state as { from?: { pathname: string } } | null
+  const from = state?.from?.pathname
+  const safeFrom = from && !['/login', '/register'].includes(from) ? from : '/dashboard'
+  return { navigate, to: safeFrom }
+}
+
+export function useLogin() {
   const storeLogin = useAuthStore((s) => s.login)
+  const { navigate, to } = useRedirectAfterAuth()
 
   return useMutation({
     mutationFn: (data: LoginRequest) => loginApi(data),
     onSuccess: (response) => {
       storeLogin(response.token, response.user)
-      navigate('/dashboard')
+      navigate(to, { replace: true })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Login failed')
     },
   })
 }
 
 export function useRegister() {
-  const navigate = useNavigate()
   const storeLogin = useAuthStore((s) => s.login)
+  const { navigate, to } = useRedirectAfterAuth()
 
   return useMutation({
     mutationFn: (data: RegisterRequest) => registerApi(data),
     onSuccess: (response) => {
       storeLogin(response.token, response.user)
-      navigate('/dashboard')
+      navigate(to, { replace: true })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Registration failed')
     },
   })
 }

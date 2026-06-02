@@ -6,7 +6,7 @@ export default function DriveCard({ drive }: { drive: DriveResponse }) {
   return (
     <Link
       to={`/drives/${drive.id}`}
-      className="block bg-white rounded-lg shadow p-4 hover:shadow-md transition"
+      className="block bg-white rounded-lg shadow p-4 hover:shadow-md transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
     >
       <div className="flex items-start justify-between mb-2">
         <h3 className="font-semibold text-lg">{drive.title}</h3>

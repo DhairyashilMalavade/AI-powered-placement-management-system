@@ -4,5 +4,6 @@ export interface NotificationResponse {
   title: string
   message: string
   isRead: boolean
+  linkUrl: string | null
   createdAt: string
 }

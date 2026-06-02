@@ -1,16 +1,18 @@
 package com.dhairya.Placement_management_system.jobpost;
 
 import com.dhairya.Placement_management_system.common.dto.ApiResponse;
+import com.dhairya.Placement_management_system.common.dto.PagedResponse;
 import com.dhairya.Placement_management_system.jobpost.dto.CreateJobPostRequest;
 import com.dhairya.Placement_management_system.jobpost.dto.JobPostResponse;
 import com.dhairya.Placement_management_system.jobpost.dto.UpdateJobPostRequest;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -34,15 +36,21 @@ public class JobPostController {
 
     @GetMapping("/drive/{driveId}")
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<List<JobPostResponse>> getByDrive(@PathVariable UUID driveId) {
-        return ApiResponse.success(jobPostService.getByDrive(driveId));
+    public ApiResponse<PagedResponse<JobPostResponse>> getByDrive(@PathVariable UUID driveId,
+                                                                    @RequestParam(required = false) String search,
+                                                                    @RequestParam(required = false) String status,
+                                                                    @PageableDefault(size = 20) Pageable pageable) {
+        return ApiResponse.success(jobPostService.getByDrive(driveId, search, status, pageable));
     }
 
     @GetMapping("/my")
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<List<JobPostResponse>> getMy(Authentication auth) {
+    public ApiResponse<PagedResponse<JobPostResponse>> getMy(Authentication auth,
+                                                               @RequestParam(required = false) String search,
+                                                               @RequestParam(required = false) String status,
+                                                               @PageableDefault(size = 20) Pageable pageable) {
         UUID userId = (UUID) auth.getPrincipal();
-        return ApiResponse.success(jobPostService.getMyJobPosts(userId));
+        return ApiResponse.success(jobPostService.getMyJobPosts(userId, search, status, pageable));
     }
 
     @GetMapping("/{id}")

@@ -1,9 +1,12 @@
 import apiClient from './client'
-import type { ApiResponse } from '../types/api'
+import type { ApiResponse, PagedResponse } from '../types/api'
 import type { CreateDriveRequest, DriveResponse } from '../types/drive'
 
-export async function getDrives(): Promise<DriveResponse[]> {
-  const res = await apiClient.get<ApiResponse<DriveResponse[]>>('/drives')
+export async function getDrives(search?: string, status?: string, page = 0, size = 20): Promise<PagedResponse<DriveResponse>> {
+  const params: Record<string, string | number> = { page, size }
+  if (search) params.search = search
+  if (status) params.status = status
+  const res = await apiClient.get<ApiResponse<PagedResponse<DriveResponse>>>('/drives', { params })
   return res.data.data
 }
 

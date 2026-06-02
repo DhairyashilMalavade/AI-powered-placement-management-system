@@ -2,26 +2,16 @@ package com.dhairya.Placement_management_system.auth;
 
 import com.dhairya.Placement_management_system.auth.dto.LoginRequest;
 import com.dhairya.Placement_management_system.auth.dto.RegisterRequest;
+import com.dhairya.Placement_management_system.common.AbstractIntegrationTest;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
 
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class AuthControllerTest {
-
-    @Autowired
-    private TestRestTemplate rest;
-
-    @Autowired
-    private ObjectMapper objectMapper;
+class AuthControllerTest extends AbstractIntegrationTest {
 
     private final String password = "password123";
     private final String fullName = "Test User";

@@ -44,6 +44,10 @@ public class AuthService {
             throw new BusinessException("Email already registered");
         }
 
+        if ("ADMIN".equals(request.getRole())) {
+            throw new BusinessException("Admin registration is not allowed via this endpoint");
+        }
+
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
@@ -52,7 +56,7 @@ public class AuthService {
         user = userRepository.save(user);
         createProfile(user);
 
-        String token = jwtTokenProvider.generateToken(user.getId(), user.getRole());
+        String token = jwtTokenProvider.generateToken(user.getId(), user.getRole(), user.isActive());
         UserResponse userResponse = toUserResponse(user);
 
         return new AuthResponse(token, userResponse);
@@ -71,7 +75,7 @@ public class AuthService {
             throw new BusinessException("Account is deactivated");
         }
 
-        String token = jwtTokenProvider.generateToken(user.getId(), user.getRole());
+        String token = jwtTokenProvider.generateToken(user.getId(), user.getRole(), user.isActive());
         UserResponse userResponse = toUserResponse(user);
 
         return new AuthResponse(token, userResponse);
@@ -84,7 +88,7 @@ public class AuthService {
     }
 
     private UserResponse toUserResponse(User user) {
-        return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole());
+        return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.isActive());
     }
 
     private void createProfile(User user) {

@@ -1,9 +1,13 @@
 package com.dhairya.Placement_management_system.auth;
 
+import com.dhairya.Placement_management_system.user.User;
+import com.dhairya.Placement_management_system.user.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,10 +21,14 @@ import java.util.UUID;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtTokenProvider jwtTokenProvider;
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
+
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, UserRepository userRepository) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -34,6 +42,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (jwtTokenProvider.validateToken(token)) {
                 UUID userId = jwtTokenProvider.getUserIdFromToken(token);
+
+                // Fast-path: reject if JWT claim says not-active (tamper detection, no DB hit)
+                if (!jwtTokenProvider.isTokenActive(token)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
+                // Source-of-truth: verify active status from database
+                try {
+                    User user = userRepository.findById(userId).orElse(null);
+                    if (user == null || !user.isActive()) {
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+                } catch (Exception e) {
+                    log.warn("DB query failed in JWT filter, rejecting request", e);
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 String role = jwtTokenProvider.getRoleFromToken(token);
 
                 List<SimpleGrantedAuthority> authorities = List.of(

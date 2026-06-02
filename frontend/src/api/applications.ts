@@ -1,5 +1,5 @@
 import apiClient from './client'
-import type { ApiResponse } from '../types/api'
+import type { ApiResponse, PagedResponse } from '../types/api'
 import type { ApplicationResponse } from '../types/application'
 
 export async function createApplication(jobPostId: string): Promise<ApplicationResponse> {
@@ -7,18 +7,23 @@ export async function createApplication(jobPostId: string): Promise<ApplicationR
   return res.data.data
 }
 
-export async function getMyApplications(): Promise<ApplicationResponse[]> {
-  const res = await apiClient.get<ApiResponse<ApplicationResponse[]>>('/applications/my')
+export async function getMyApplications(page = 0, size = 20): Promise<PagedResponse<ApplicationResponse>> {
+  const res = await apiClient.get<ApiResponse<PagedResponse<ApplicationResponse>>>('/applications/my', { params: { page, size } })
   return res.data.data
 }
 
-export async function getApplicationsByJobPost(jobPostId: string): Promise<ApplicationResponse[]> {
-  const res = await apiClient.get<ApiResponse<ApplicationResponse[]>>(`/applications/job-post/${jobPostId}`)
+export async function getApplicationsByJobPost(jobPostId: string, page = 0, size = 20): Promise<PagedResponse<ApplicationResponse>> {
+  const res = await apiClient.get<ApiResponse<PagedResponse<ApplicationResponse>>>(`/applications/job-post/${jobPostId}`, { params: { page, size } })
   return res.data.data
 }
 
-export async function getApplicationsByDrive(driveId: string): Promise<ApplicationResponse[]> {
-  const res = await apiClient.get<ApiResponse<ApplicationResponse[]>>(`/applications/drive/${driveId}`)
+export async function getApplicationsByDrive(driveId: string, page = 0, size = 20): Promise<PagedResponse<ApplicationResponse>> {
+  const res = await apiClient.get<ApiResponse<PagedResponse<ApplicationResponse>>>(`/applications/drive/${driveId}`, { params: { page, size } })
+  return res.data.data
+}
+
+export async function withdrawApplication(id: string): Promise<ApplicationResponse> {
+  const res = await apiClient.patch<ApiResponse<ApplicationResponse>>(`/applications/${id}/withdraw`)
   return res.data.data
 }
 

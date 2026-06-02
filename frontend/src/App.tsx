@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
+import ErrorBoundary from './components/shared/ErrorBoundary'
 import AppLayout from './components/layout/AppLayout'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
@@ -11,6 +12,7 @@ import DriveDetailPage from './pages/DriveDetailPage'
 import ApplicationsPage from './pages/ApplicationsPage'
 import ProfilePage from './pages/ProfilePage'
 import NotificationsPage from './pages/NotificationsPage'
+import AdminUsersPage from './pages/AdminUsersPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 const queryClient = new QueryClient()
@@ -19,6 +21,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+      <ErrorBoundary>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -31,12 +34,15 @@ export default function App() {
               <Route path="/applications" element={<ApplicationsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/admin" element={<DashboardPage />} />
+              <Route path="/admin/users" element={<AdminUsersPage />} />
             </Route>
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
+      </ErrorBoundary>
     </QueryClientProvider>
   )
 }

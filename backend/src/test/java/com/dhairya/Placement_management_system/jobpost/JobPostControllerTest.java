@@ -1,43 +1,15 @@
 package com.dhairya.Placement_management_system.jobpost;
 
+import com.dhairya.Placement_management_system.common.AbstractIntegrationTest;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class JobPostControllerTest {
-
-    @Autowired
-    private TestRestTemplate rest;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    private HttpEntity<String> jsonRequest(String token, String body) {
-        var headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        if (token != null) headers.setBearerAuth(token);
-        return new HttpEntity<>(body, headers);
-    }
-
-    private String registerUser(String role) throws Exception {
-        String email = "jp-test-" + UUID.randomUUID().toString().substring(0, 8) + "@test.com";
-        String json = """
-            {"email":"%s","password":"password123","fullName":"Test %s","role":"%s"}
-            """.formatted(email, role, role);
-        ResponseEntity<String> resp = rest.exchange(
-            "/api/v1/auth/register", HttpMethod.POST, jsonRequest(null, json), String.class);
-        return objectMapper.readTree(resp.getBody()).get("data").get("token").asText();
-    }
+class JobPostControllerTest extends AbstractIntegrationTest {
 
     private String createDrive(String poToken) throws Exception {
         String body = """
@@ -45,7 +17,10 @@ class JobPostControllerTest {
             """.formatted(LocalDateTime.now().plusDays(30));
         ResponseEntity<String> resp = rest.exchange(
             "/api/v1/drives", HttpMethod.POST, jsonRequest(poToken, body), String.class);
-        return objectMapper.readTree(resp.getBody()).get("data").get("id").asText();
+        String driveId = objectMapper.readTree(resp.getBody()).get("data").get("id").asText();
+        rest.exchange("/api/v1/drives/" + driveId + "/status", HttpMethod.PATCH,
+            jsonRequest(poToken, "{\"status\":\"ACTIVE\"}"), String.class);
+        return driveId;
     }
 
     @Test
@@ -100,8 +75,9 @@ class JobPostControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         JsonNode root = objectMapper.readTree(response.getBody());
-        assertThat(root.get("data").isArray()).isTrue();
-        assertThat(root.get("data").size()).isGreaterThanOrEqualTo(1);
+        assertThat(root.get("data").get("content").isArray()).isTrue();
+        assertThat(root.get("data").get("content").size()).isGreaterThanOrEqualTo(1);
+        assertThat(root.get("data").get("totalPages").asInt()).isGreaterThanOrEqualTo(1);
     }
 
     @Test
@@ -143,5 +119,27 @@ class JobPostControllerTest {
             "/api/v1/job-posts/" + id, HttpMethod.DELETE, jsonRequest(recToken, null), String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    }
+
+    @Test
+    void getByDrive_ShouldFilterBySearchAndStatus() throws Exception {
+        String poToken = registerUser("PO");
+        String recToken = registerUser("RECRUITER");
+        String driveId = createDrive(poToken);
+
+        String createBody = """
+            {"driveId":"%s","title":"Unique Job Role","description":"Test","vacancies":1}
+            """.formatted(driveId);
+        rest.exchange("/api/v1/job-posts", HttpMethod.POST, jsonRequest(recToken, createBody), String.class);
+
+        ResponseEntity<String> response = rest.exchange(
+            "/api/v1/job-posts/drive/" + driveId + "?search=Unique&status=OPEN",
+            HttpMethod.GET, jsonRequest(recToken, null), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JsonNode root = objectMapper.readTree(response.getBody());
+        assertThat(root.get("data").get("content").isArray()).isTrue();
+        assertThat(root.get("data").get("content").size()).isGreaterThanOrEqualTo(1);
+        assertThat(root.get("data").get("content").get(0).get("title").asText()).contains("Unique");
     }
 }

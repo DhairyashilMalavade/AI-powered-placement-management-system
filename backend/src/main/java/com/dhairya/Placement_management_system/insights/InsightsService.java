@@ -53,18 +53,11 @@ public class InsightsService {
                     requiredSkills.addAll(Arrays.asList(post.getDrive().getRequiredSkills()));
                 }
             }
-        } else if ("ROLE_PO".equals(user.getRole()) || "PO".equals(user.getRole())) {
-            List<Drive> drives = driveRepository.findByCreatedById(currentUserId);
+        } else {
+            List<Drive> drives = driveRepository.findAll();
             for (Drive drive : drives) {
                 if (drive.getRequiredSkills() != null) {
                     requiredSkills.addAll(Arrays.asList(drive.getRequiredSkills()));
-                }
-            }
-        } else {
-            List<JobPost> allPosts = jobPostRepository.findAll();
-            for (JobPost post : allPosts) {
-                if (post.getDrive().getRequiredSkills() != null) {
-                    requiredSkills.addAll(Arrays.asList(post.getDrive().getRequiredSkills()));
                 }
             }
         }
@@ -103,20 +96,11 @@ public class InsightsService {
                     }
                 }
             }
-        } else if ("ROLE_PO".equals(user.getRole()) || "PO".equals(user.getRole())) {
-            List<Drive> drives = driveRepository.findByCreatedById(userId);
+        } else {
+            List<Drive> drives = driveRepository.findAll();
             for (Drive drive : drives) {
                 if (drive.getRequiredSkills() != null) {
                     for (String s : drive.getRequiredSkills()) {
-                        if (s.equalsIgnoreCase(skill)) count++;
-                    }
-                }
-            }
-        } else {
-            List<JobPost> posts = jobPostRepository.findAll();
-            for (JobPost post : posts) {
-                if (post.getDrive().getRequiredSkills() != null) {
-                    for (String s : post.getDrive().getRequiredSkills()) {
                         if (s.equalsIgnoreCase(skill)) count++;
                     }
                 }
@@ -137,11 +121,6 @@ public class InsightsService {
         if ("ROLE_RECRUITER".equals(user.getRole()) || "RECRUITER".equals(user.getRole())) {
             jobPostIds = jobPostRepository.findByRecruiterId(currentUserId).stream()
                 .map(JobPost::getId).collect(Collectors.toList());
-        } else if ("ROLE_PO".equals(user.getRole()) || "PO".equals(user.getRole())) {
-            List<Drive> drives = driveRepository.findByCreatedById(currentUserId);
-            jobPostIds = jobPostRepository.findByDriveIdIn(
-                drives.stream().map(Drive::getId).collect(Collectors.toList())
-            ).stream().map(JobPost::getId).collect(Collectors.toList());
         } else {
             jobPostIds = jobPostRepository.findAll().stream()
                 .map(JobPost::getId).collect(Collectors.toList());

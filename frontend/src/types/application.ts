@@ -23,6 +23,7 @@ export interface ApplicationResponse {
   jobPost: JobPostResponse
   status: string
   aiScore: number | null
+  scoringFeedback: string | null
   resumeSnapshotPath: string | null
   appliedAt: string
   updatedAt: string

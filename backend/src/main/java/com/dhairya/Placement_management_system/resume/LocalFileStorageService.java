@@ -66,10 +66,7 @@ public class LocalFileStorageService implements FileStorageService {
         try {
             Path filePath = uploadDir.resolve(filename).normalize();
             Resource resource = new UrlResource(filePath.toUri());
-            if (resource.exists()) {
-                return resource;
-            }
-            throw new RuntimeException("File not found: " + filename);
+            return resource;
         } catch (MalformedURLException e) {
             throw new RuntimeException("File not found: " + filename, e);
         }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { JobPostResponse } from '../../types/jobPost'
 import type { CreateJobPostRequest } from '../../types/jobPost'
 import JobPostStatusBadge from './JobPostStatusBadge'
@@ -94,6 +95,12 @@ export default function JobPostCard({ post }: { post: JobPostResponse }) {
             >
               {deletePost.isPending ? 'Deleting...' : 'Delete'}
             </button>
+            <Link
+              to={`/jobs/${post.id}/rankings`}
+              className="text-xs px-2 py-1 text-blue-600 hover:underline rounded"
+            >
+              View Rankings →
+            </Link>
           </>
         )}
       </div>

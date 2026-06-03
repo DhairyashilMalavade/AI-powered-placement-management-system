@@ -45,6 +45,7 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
            countQuery = "SELECT COUNT(a) FROM Application a WHERE a.jobPost.id = :jobPostId AND a.status <> 'WITHDRAWN'")
     Page<Application> findRankedByJobPostId(UUID jobPostId, Pageable pageable);
 
+    @Query("SELECT COUNT(a) FROM Application a WHERE a.jobPost.id = :jobPostId AND a.aiScore > :aiScore AND a.status <> 'WITHDRAWN'")
     long countByJobPostIdAndAiScoreGreaterThan(UUID jobPostId, java.math.BigDecimal aiScore);
 
     @Query(value = "SELECT " +

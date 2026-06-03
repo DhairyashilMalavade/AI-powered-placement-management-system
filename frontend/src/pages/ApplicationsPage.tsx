@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { useMyApplications, useApplicationsByJobPost, useWithdrawApplication, useUpdateApplicationStatus } from '../hooks/useApplications'
 import { useMyJobPosts } from '../hooks/useJobPosts'
@@ -62,8 +62,18 @@ function StudentApplications() {
             <div className="flex-1">
               <h3 className="font-medium">{app.jobPost.title}</h3>
               <p className="text-xs text-gray-500">
-                {app.jobPost.drive.title} · Applied {new Date(app.appliedAt).toLocaleDateString()}
+                <Link to={`/drives/${app.jobPost.drive.id}`} className="hover:underline">{app.jobPost.drive.title}</Link> · Applied {new Date(app.appliedAt).toLocaleDateString()}
               </p>
+              {app.aiScore !== null && (
+                <span className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded ${
+                  app.aiScore >= 60 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                }`}>
+                  AI Score: {app.aiScore}
+                </span>
+              )}
+              {app.scoringFeedback && (
+                <p className="text-xs text-gray-600 mt-1 italic">{app.scoringFeedback}</p>
+              )}
               {app.resumeSnapshotPath && (
                 <button
                   onClick={() => downloadResume(app.id, `resume-${app.student.fullName.replace(/\s+/g, '-')}.pdf`)}
@@ -146,6 +156,14 @@ function RecruiterApplications() {
           </aside>
           <div className="flex-1">
             {!selectedPostId && <p className="text-gray-500 text-sm">Select a job post to view applications.</p>}
+            {selectedPostId && !appsLoading && (
+              <Link
+                to={`/jobs/${selectedPostId}/rankings`}
+                className="text-sm text-blue-600 hover:underline mb-3 inline-block"
+              >
+                View AI Rankings →
+              </Link>
+            )}
             {selectedPostId && appsLoading && <div className="flex justify-center py-10"><Spinner /></div>}
             {selectedPostId && appsError && (
               <div className="text-center py-10">
@@ -163,6 +181,16 @@ function RecruiterApplications() {
                     <div>
                       <h3 className="font-medium">{app.student.fullName}</h3>
                       <p className="text-xs text-gray-500">{app.student.email}</p>
+                      {app.aiScore !== null && (
+                        <span className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded ${
+                          app.aiScore >= 60 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                        }`}>
+                          AI Score: {app.aiScore}
+                        </span>
+                      )}
+                      {app.scoringFeedback && (
+                        <p className="text-xs text-gray-600 mt-1 italic">{app.scoringFeedback}</p>
+                      )}
                     </div>
                     <ApplicationStatusBadge status={app.status} />
                   </div>

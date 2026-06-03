@@ -49,8 +49,8 @@ export default function RankingsTable({ data }: RankingsTableProps) {
                   <span className="text-gray-400">—</span>
                 )}
               </td>
-              <td className="px-3 py-2 text-gray-600 max-w-xs truncate">{app.scoringFeedback || '—'}</td>
-              <td className="px-3 py-2 text-gray-500 max-w-xs truncate">{app.scoringRationale || '—'}</td>
+              <td className="px-3 py-2 text-gray-600 max-w-xs whitespace-normal break-words">{app.scoringFeedback || '—'}</td>
+              <td className="px-3 py-2 text-gray-500 max-w-xs whitespace-normal break-words">{app.scoringRationale || '—'}</td>
             </tr>
           ))}
         </tbody>

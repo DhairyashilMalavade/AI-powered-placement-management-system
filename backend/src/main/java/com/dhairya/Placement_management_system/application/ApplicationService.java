@@ -174,10 +174,6 @@ public class ApplicationService {
         Drive drive = driveRepository.findById(driveId)
             .orElseThrow(() -> new ResourceNotFoundException("Drive", "id", driveId));
 
-        if (!drive.getCreatedBy().getId().equals(currentUserId)) {
-            throw new BusinessException("You are not the owner of this drive");
-        }
-
         Page<ApplicationResponse> page = applicationRepository.findByJobPostDriveIdOrderByAppliedAtDesc(driveId, pageable)
             .map(this::toResponse);
         return PagedResponse.from(page);
@@ -305,7 +301,8 @@ public class ApplicationService {
 
         boolean isOwner = application.getStudent().getId().equals(currentUserId);
         boolean isRecruiter = jobPost.getRecruiter().getId().equals(currentUserId);
-        boolean isPO = drive.getCreatedBy().getId().equals(currentUserId);
+        boolean isCreatorPO = drive.getCreatedBy().getId().equals(currentUserId);
+        boolean isPO = isCreatorPO || hasExactRole(currentUserId, "PO");
         boolean isAdmin = hasExactRole(currentUserId, "ADMIN");
 
         if (!isOwner && !isRecruiter && !isPO && !isAdmin) {
@@ -321,7 +318,8 @@ public class ApplicationService {
         Drive drive = jobPost.getDrive();
 
         boolean isRecruiter = jobPost.getRecruiter().getId().equals(currentUserId);
-        boolean isPO = drive.getCreatedBy().getId().equals(currentUserId);
+        boolean isCreatorPO = drive.getCreatedBy().getId().equals(currentUserId);
+        boolean isPO = isCreatorPO || hasExactRole(currentUserId, "PO");
         boolean isAdmin = hasExactRole(currentUserId, "ADMIN");
 
         if (isRecruiter || isPO || isAdmin) {
@@ -396,17 +394,28 @@ public class ApplicationService {
 
         boolean isStudent = application.getStudent().getId().equals(currentUserId);
         boolean isRecruiter = jobPost.getRecruiter().getId().equals(currentUserId);
-        boolean isPO = drive.getCreatedBy().getId().equals(currentUserId);
+        boolean isCreatorPO = drive.getCreatedBy().getId().equals(currentUserId);
+        boolean isPO = isCreatorPO || hasExactRole(currentUserId, "PO");
+        boolean isAdmin = hasExactRole(currentUserId, "ADMIN");
 
-        if (!isStudent && !isRecruiter && !isPO) {
+        if (!isStudent && !isRecruiter && !isPO && !isAdmin) {
             throw new BusinessException("You are not authorized to download this resume");
         }
 
         Resource resource = fileStorageService.load(application.getResumeSnapshotPath());
-        if (!resource.exists()) {
-            throw new ResourceNotFoundException("Resume", "filename", application.getResumeSnapshotPath());
+        if (resource.exists()) {
+            return resource;
         }
-        return resource;
+
+        StudentProfile profile = studentProfileRepository.findByUserId(application.getStudent().getId()).orElse(null);
+        if (profile != null && profile.getResumeFilePath() != null) {
+            Resource current = fileStorageService.load(profile.getResumeFilePath());
+            if (current.exists()) {
+                return current;
+            }
+        }
+
+        throw new ResourceNotFoundException("Resume", "filename", application.getResumeSnapshotPath());
     }
 
     private ApplicationResponse toResponse(Application application) {
@@ -440,6 +449,7 @@ public class ApplicationService {
         return new ApplicationResponse(
             application.getId(), studentResp, jobPostResp,
             application.getStatus(), application.getAiScore(),
+            application.getScoringFeedback(),
             application.getResumeSnapshotPath(), application.getAppliedAt(), application.getUpdatedAt());
     }
 }

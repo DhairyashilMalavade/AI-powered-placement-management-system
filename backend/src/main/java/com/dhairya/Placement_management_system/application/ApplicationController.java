@@ -55,7 +55,7 @@ public class ApplicationController {
     }
 
     @GetMapping("/drive/{driveId}")
-    @PreAuthorize("hasRole('PO')")
+    @PreAuthorize("hasAnyRole('PO', 'ADMIN')")
     public ApiResponse<PagedResponse<ApplicationResponse>> getByDrive(@PathVariable UUID driveId,
                                                                        Authentication auth,
                                                                        @PageableDefault(size = 20) Pageable pageable) {

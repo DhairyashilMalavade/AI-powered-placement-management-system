@@ -20,6 +20,7 @@ public class ApplicationResponse {
     private JobPostResponse jobPost;
     private String status;
     private BigDecimal aiScore;
+    private String scoringFeedback;
     private String resumeSnapshotPath;
     private LocalDateTime appliedAt;
     private LocalDateTime updatedAt;

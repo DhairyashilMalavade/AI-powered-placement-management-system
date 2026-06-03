@@ -72,6 +72,7 @@ export default function DriveDetailPage() {
   const isOwner = drive.createdBy.id === user?.id
   const isPO = user?.role === 'PO'
   const isRecruiter = user?.role === 'RECRUITER'
+  const isAdmin = user?.role === 'ADMIN'
 
   const handleDelete = async () => {
     if (!confirm('Delete this drive? This will also remove all associated job posts and applications.')) return
@@ -234,7 +235,7 @@ export default function DriveDetailPage() {
         <Pagination page={jobPostPage} totalPages={jobPostsPage.totalPages} onPageChange={setJobPostPage} />
       )}
 
-      {isOwner && isPO && <POApplicationReview driveId={drive.id} />}
+      {(isPO || isAdmin) && <POApplicationReview driveId={drive.id} />}
     </div>
   )
 }
@@ -270,7 +271,15 @@ function POApplicationReview({ driveId }: { driveId: string }) {
       {Object.keys(grouped).length === 0 && <EmptyState title="No applications yet" />}
       {Object.entries(grouped).map(([title, apps]) => (
         <div key={title} className="mb-6">
-          <h3 className="font-medium text-lg mb-2">{title} ({apps.length})</h3>
+          <h3 className="font-medium text-lg mb-2">
+            {title} ({apps.length})
+            <Link
+              to={`/jobs/${apps[0].jobPost.id}/rankings`}
+              className="ml-3 text-sm text-blue-600 hover:underline font-normal"
+            >
+              View AI Rankings →
+            </Link>
+          </h3>
           <div className="space-y-2">
             {apps.map((app) => (
               <div key={app.id} className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
@@ -279,6 +288,16 @@ function POApplicationReview({ driveId }: { driveId: string }) {
                   <p className="text-xs text-gray-500">
                     {app.student.email} · Applied {new Date(app.appliedAt).toLocaleDateString()}
                   </p>
+                  {app.aiScore !== null && (
+                    <span className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded ${
+                      app.aiScore >= 60 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      AI Score: {app.aiScore}
+                    </span>
+                  )}
+                  {app.scoringFeedback && (
+                    <p className="text-xs text-gray-600 mt-1 italic">{app.scoringFeedback}</p>
+                  )}
                   {app.resumeSnapshotPath && (
                     <a
                       href={`${(import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1').replace(/\/$/, '')}/applications/${app.id}/resume`}

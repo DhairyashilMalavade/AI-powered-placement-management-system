@@ -149,6 +149,61 @@ class ApplicationControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void student_ShouldSeeOnlyOwnEntryInRankedList() throws Exception {
+        String poToken = registerUser("PO");
+        String recToken = registerUser("RECRUITER");
+        String student1Token = registerUser("STUDENT");
+        String student2Token = registerUser("STUDENT");
+        String driveId = createDrive(poToken);
+        String jobPostId = createJobPost(recToken, driveId);
+
+        rest.exchange("/api/v1/applications", HttpMethod.POST,
+            jsonRequest(student1Token, "{\"jobPostId\":\"" + jobPostId + "\"}"), String.class);
+        rest.exchange("/api/v1/applications", HttpMethod.POST,
+            jsonRequest(student2Token, "{\"jobPostId\":\"" + jobPostId + "\"}"), String.class);
+
+        ResponseEntity<String> response = rest.exchange(
+            "/api/v1/applications/job-post/" + jobPostId + "/ranked", HttpMethod.GET,
+            jsonRequest(student1Token, null), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JsonNode root = objectMapper.readTree(response.getBody());
+        assertThat(root.get("data").get("content").size()).isEqualTo(1);
+    }
+
+    @Test
+    void recruiter_ShouldSeeAllEntriesInRankedList() throws Exception {
+        String poToken = registerUser("PO");
+        String recToken = registerUser("RECRUITER");
+        String student1Token = registerUser("STUDENT");
+        String student2Token = registerUser("STUDENT");
+        String driveId = createDrive(poToken);
+        String jobPostId = createJobPost(recToken, driveId);
+
+        rest.exchange("/api/v1/applications", HttpMethod.POST,
+            jsonRequest(student1Token, "{\"jobPostId\":\"" + jobPostId + "\"}"), String.class);
+        rest.exchange("/api/v1/applications", HttpMethod.POST,
+            jsonRequest(student2Token, "{\"jobPostId\":\"" + jobPostId + "\"}"), String.class);
+
+        ResponseEntity<String> response = rest.exchange(
+            "/api/v1/applications/job-post/" + jobPostId + "/ranked", HttpMethod.GET,
+            jsonRequest(recToken, null), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JsonNode root = objectMapper.readTree(response.getBody());
+        assertThat(root.get("data").get("content").size()).isGreaterThanOrEqualTo(2);
+    }
+
+    @Test
+    void unauthenticatedUser_ShouldNotAccessRankedList() throws Exception {
+        ResponseEntity<String> response = rest.exchange(
+            "/api/v1/applications/job-post/nonexistent/ranked", HttpMethod.GET,
+            jsonRequest(null, null), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
     void recruiter_ShouldUpdateApplicationStatus() throws Exception {
         String poToken = registerUser("PO");
         String recToken = registerUser("RECRUITER");

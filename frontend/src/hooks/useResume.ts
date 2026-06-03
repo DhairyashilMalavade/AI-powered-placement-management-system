@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { uploadResume } from '../api/resume'
+import { uploadResume, downloadResumeAsBlob } from '../api/resume'
 import toast from 'react-hot-toast'
 
 export function useUploadResume() {
@@ -14,4 +14,20 @@ export function useUploadResume() {
       toast.error(err.message || 'Upload failed')
     },
   })
+}
+
+export async function downloadResume(applicationId: string, filename: string) {
+  try {
+    const blob = await downloadResumeAsBlob(applicationId)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch {
+    toast.error('Failed to download resume')
+  }
 }

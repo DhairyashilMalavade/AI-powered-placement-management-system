@@ -38,6 +38,15 @@ public class Application {
     @Column(name = "ai_score", precision = 5, scale = 2)
     private BigDecimal aiScore;
 
+    @Column(name = "scoring_rationale", columnDefinition = "TEXT")
+    private String scoringRationale;
+
+    @Column(name = "scoring_feedback", columnDefinition = "TEXT")
+    private String scoringFeedback;
+
+    @Column(name = "scoring_version", length = 50)
+    private String scoringVersion;
+
     @Column(name = "resume_snapshot_path")
     private String resumeSnapshotPath;
 

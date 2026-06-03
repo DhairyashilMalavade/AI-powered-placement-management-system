@@ -112,17 +112,29 @@ export default function DriveDetailPage() {
             {editing ? 'Cancel' : 'Edit'}
           </button>
           {drive.status === 'DRAFT' && (
-            <button onClick={() => handleStatusChange('ACTIVE')} className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700">
-              Activate
+            <button
+              onClick={() => handleStatusChange('ACTIVE')}
+              disabled={updateStatus.isPending}
+              className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+            >
+              {updateStatus.isPending ? 'Activating...' : 'Activate'}
             </button>
           )}
           {drive.status === 'ACTIVE' && (
-            <button onClick={() => handleStatusChange('CLOSED')} className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700">
-              Close
+            <button
+              onClick={() => handleStatusChange('CLOSED')}
+              disabled={updateStatus.isPending}
+              className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+            >
+              {updateStatus.isPending ? 'Closing...' : 'Close'}
             </button>
           )}
-          <button onClick={handleDelete} className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200">
-            Delete
+          <button
+            onClick={handleDelete}
+            disabled={deleteDrive.isPending}
+            className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
+          >
+            {deleteDrive.isPending ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       )}

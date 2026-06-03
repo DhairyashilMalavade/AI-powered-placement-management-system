@@ -25,9 +25,10 @@ export default function NotificationsPage() {
         {notifications && notifications.some((n) => !n.isRead) && (
           <button
             onClick={() => markAll.mutate()}
-            className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+            disabled={markAll.isPending}
+            className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
           >
-            Mark all as read
+            {markAll.isPending ? 'Marking...' : 'Mark all as read'}
           </button>
         )}
       </div>

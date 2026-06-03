@@ -1,16 +1,25 @@
 import { useState } from 'react'
 import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { useUnreadCount } from '../../hooks/useNotifications'
+import apiClient from '../../api/client'
 
 export default function AppLayout() {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
   const store = useAuthStore()
+  const queryClient = useQueryClient()
   const { data: unreadCount } = useUnreadCount()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await apiClient.post('/auth/logout')
+    } catch {
+      // proceed even if backend logout fails
+    }
+    queryClient.clear()
     store.logout()
     navigate('/login')
   }
@@ -26,6 +35,8 @@ export default function AppLayout() {
       { to: '/admin', label: 'Dashboard' },
       { to: '/admin/users', label: 'Users' },
     ] : []),
+    ...(role === 'RECRUITER' || role === 'PO' || role === 'ADMIN' ? [{ to: '/insights', label: 'Insights' }] : []),
+    ...(role === 'PO' || role === 'ADMIN' ? [{ to: '/analytics', label: 'Analytics' }] : []),
     {
       to: '/notifications',
       label: 'Notifications' + (unreadCount && unreadCount > 0 ? ` (${unreadCount})` : ''),

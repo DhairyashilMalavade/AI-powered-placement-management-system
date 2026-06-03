@@ -8,7 +8,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: false
   flyway:
     enabled: true
   servlet:
@@ -17,7 +17,7 @@ spring:
       max-request-size: 10MB
 
 jwt:
-  secret: ${JWT_SECRET:dev-secret-key-min-256-bits-long-for-hs256-algorithm}
+  secret: ${JWT_SECRET}
   expiration-ms: 86400000
 
 file:

@@ -38,4 +38,36 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
     boolean existsByStudentIdAndJobPostId(UUID studentId, UUID jobPostId);
 
     long countByJobPostIdAndStatus(UUID jobPostId, String status);
+
+    @Query(value = "SELECT a FROM Application a JOIN FETCH a.student " +
+           "WHERE a.jobPost.id = :jobPostId AND a.status <> 'WITHDRAWN' " +
+           "ORDER BY a.aiScore DESC NULLS LAST",
+           countQuery = "SELECT COUNT(a) FROM Application a WHERE a.jobPost.id = :jobPostId AND a.status <> 'WITHDRAWN'")
+    Page<Application> findRankedByJobPostId(UUID jobPostId, Pageable pageable);
+
+    long countByJobPostIdAndAiScoreGreaterThan(UUID jobPostId, java.math.BigDecimal aiScore);
+
+    @Query(value = "SELECT " +
+           "CASE " +
+            "  WHEN a.aiScore >= 81 THEN '81-100' " +
+            "  WHEN a.aiScore >= 61 THEN '61-80' " +
+            "  WHEN a.aiScore >= 41 THEN '41-60' " +
+            "  WHEN a.aiScore >= 21 THEN '21-40' " +
+            "  WHEN a.aiScore IS NOT NULL THEN '0-20' " +
+           "  ELSE 'unscored' " +
+           "END as bucket, COUNT(a) " +
+           "FROM Application a WHERE a.jobPost.id IN :jobPostIds " +
+           "GROUP BY bucket ORDER BY bucket")
+    List<Object[]> getScoreDistribution(java.util.List<UUID> jobPostIds);
+
+    @Query("SELECT a.status, COUNT(a) FROM Application a WHERE a.jobPost.id IN :jobPostIds GROUP BY a.status ORDER BY a.status")
+    List<Object[]> getFunnelByJobPostIds(java.util.List<UUID> jobPostIds);
+
+    long countByStatusIn(java.util.List<String> statuses);
+
+    @Query("SELECT AVG(a.aiScore) FROM Application a WHERE a.aiScore IS NOT NULL")
+    Double getAverageAiScore();
+
+    @Query("SELECT a.status, COUNT(a) FROM Application a GROUP BY a.status ORDER BY a.status")
+    List<Object[]> getPlatformFunnel();
 }

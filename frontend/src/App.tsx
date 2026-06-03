@@ -13,6 +13,9 @@ import ApplicationsPage from './pages/ApplicationsPage'
 import ProfilePage from './pages/ProfilePage'
 import NotificationsPage from './pages/NotificationsPage'
 import AdminUsersPage from './pages/AdminUsersPage'
+import JobPostRankings from './pages/JobPostRankings'
+import JobPostInsights from './pages/JobPostInsights'
+import AnalyticsDashboard from './pages/AnalyticsDashboard'
 import NotFoundPage from './pages/NotFoundPage'
 
 const queryClient = new QueryClient()
@@ -36,6 +39,9 @@ export default function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/admin" element={<DashboardPage />} />
               <Route path="/admin/users" element={<AdminUsersPage />} />
+              <Route path="/insights" element={<JobPostInsights />} />
+              <Route path="/analytics" element={<AnalyticsDashboard />} />
+              <Route path="/jobs/:jobPostId/rankings" element={<JobPostRankings />} />
             </Route>
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -1,6 +1,6 @@
 package com.dhairya.Placement_management_system.resume;
 
-import com.dhairya.Placement_management_system.common.exception.BusinessException;
+import com.dhairya.Placement_management_system.common.dto.ApiResponse;
 import com.dhairya.Placement_management_system.common.exception.ResourceNotFoundException;
 import com.dhairya.Placement_management_system.user.StudentProfile;
 import com.dhairya.Placement_management_system.user.StudentProfileRepository;
@@ -20,33 +20,24 @@ import java.util.UUID;
 @RequestMapping("/api/v1/resumes")
 public class ResumeController {
 
+    private final ResumeService resumeService;
     private final FileStorageService fileStorageService;
     private final StudentProfileRepository studentProfileRepository;
 
-    public ResumeController(FileStorageService fileStorageService,
+    public ResumeController(ResumeService resumeService,
+                            FileStorageService fileStorageService,
                             StudentProfileRepository studentProfileRepository) {
+        this.resumeService = resumeService;
         this.fileStorageService = fileStorageService;
         this.studentProfileRepository = studentProfileRepository;
     }
 
     @PostMapping("/upload")
-    public String upload(@RequestParam("file") MultipartFile file, Authentication auth) {
+    public ApiResponse<String> upload(@RequestParam("file") MultipartFile file, Authentication auth) {
         UUID userId = (UUID) auth.getPrincipal();
         requireRole(auth, "ROLE_STUDENT");
-
-        StudentProfile profile = studentProfileRepository.findByUserId(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("StudentProfile", "userId", userId));
-
-        String oldFile = profile.getResumeFilePath();
-        String filename = fileStorageService.store(file);
-        profile.setResumeFilePath(filename);
-        studentProfileRepository.save(profile);
-
-        if (oldFile != null) {
-            fileStorageService.delete(oldFile);
-        }
-
-        return filename;
+        String filename = resumeService.upload(file, userId);
+        return ApiResponse.success(filename);
     }
 
     @GetMapping("/{filename}")

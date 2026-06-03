@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { useMyApplications, useApplicationsByJobPost, useWithdrawApplication, useUpdateApplicationStatus } from '../hooks/useApplications'
 import { useMyJobPosts } from '../hooks/useJobPosts'
+import { downloadResume } from '../hooks/useResume'
 import ApplicationStatusBadge from '../components/applications/ApplicationStatusBadge'
 import Spinner from '../components/shared/Spinner'
 import Pagination from '../components/shared/Pagination'
@@ -64,14 +65,12 @@ function StudentApplications() {
                 {app.jobPost.drive.title} · Applied {new Date(app.appliedAt).toLocaleDateString()}
               </p>
               {app.resumeSnapshotPath && (
-                <a
-                  href={`${(import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1').replace(/\/$/, '')}/applications/${app.id}/resume`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => downloadResume(app.id, `resume-${app.student.fullName.replace(/\s+/g, '-')}.pdf`)}
                   className="text-xs text-blue-600 hover:underline mt-1 inline-block"
                 >
                   Download Resume
-                </a>
+                </button>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -82,7 +81,7 @@ function StudentApplications() {
                   disabled={withdraw.isPending}
                   className="text-xs px-2 py-1 rounded border border-red-300 text-red-600 hover:bg-red-50 transition disabled:opacity-50"
                 >
-                  Withdraw
+                  {withdraw.isPending ? 'Withdrawing...' : 'Withdraw'}
                 </button>
               )}
             </div>
@@ -170,14 +169,12 @@ function RecruiterApplications() {
                   <p className="text-xs text-gray-500 mb-2">
                     Applied {new Date(app.appliedAt).toLocaleDateString()}
                     {app.resumeSnapshotPath && (
-                      <a
-                        href={`${(import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1').replace(/\/$/, '')}/applications/${app.id}/resume`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-2 text-blue-600 hover:underline"
+                      <button
+                        onClick={() => downloadResume(app.id, `resume-${app.student.fullName.replace(/\s+/g, '-')}.pdf`)}
+                        className="ml-2 text-xs text-blue-600 hover:underline"
                       >
                         Download Resume
-                      </a>
+                      </button>
                     )}
                   </p>
                   <div className="flex gap-2">

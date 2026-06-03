@@ -35,4 +35,16 @@ public interface DriveRepository extends JpaRepository<Drive, UUID> {
     List<Drive> findByCreatedById(UUID createdById);
 
     long countByStatus(String status);
+
+    @Query(value = "SELECT d.id, d.title, " +
+           "COUNT(DISTINCT jp.id) AS total_posts, " +
+           "COUNT(a.id) AS total_applicants, " +
+           "COUNT(a.id) FILTER (WHERE a.status = 'ACCEPTED') AS total_filled, " +
+           "AVG(a.ai_score) FILTER (WHERE a.ai_score IS NOT NULL) AS avg_score " +
+           "FROM drives d " +
+           "LEFT JOIN job_posts jp ON jp.drive_id = d.id " +
+           "LEFT JOIN applications a ON a.job_post_id = jp.id " +
+           "GROUP BY d.id, d.title",
+           nativeQuery = true)
+    List<Object[]> getDrivePerformance();
 }

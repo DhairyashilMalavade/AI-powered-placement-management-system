@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,6 +31,12 @@ public interface JobPostRepository extends JpaRepository<JobPost, UUID> {
 
     @Query("SELECT jp FROM JobPost jp JOIN FETCH jp.drive d JOIN FETCH d.createdBy JOIN FETCH jp.recruiter WHERE jp.id = :id")
     Optional<JobPost> findByIdWithDetails(UUID id);
+
+    @Query("SELECT jp FROM JobPost jp JOIN FETCH jp.drive d JOIN FETCH d.createdBy JOIN FETCH jp.recruiter WHERE jp.recruiter.id = :recruiterId")
+    List<JobPost> findByRecruiterId(UUID recruiterId);
+
+    @Query("SELECT jp FROM JobPost jp JOIN FETCH jp.drive d JOIN FETCH d.createdBy JOIN FETCH jp.recruiter WHERE jp.drive.id IN :driveIds")
+    List<JobPost> findByDriveIdIn(List<UUID> driveIds);
 
     long countByStatus(String status);
 }

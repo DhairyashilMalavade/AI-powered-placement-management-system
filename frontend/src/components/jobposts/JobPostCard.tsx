@@ -81,16 +81,18 @@ export default function JobPostCard({ post }: { post: JobPostResponse }) {
             {post.status === 'OPEN' && (
               <button
                 onClick={() => updateStatus.mutate({ id: post.id, status: 'FILLED' })}
-                className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded"
+                disabled={updateStatus.isPending}
+                className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded disabled:opacity-50"
               >
-                Mark Filled
+                {updateStatus.isPending ? 'Marking...' : 'Mark Filled'}
               </button>
             )}
             <button
               onClick={() => deletePost.mutate(post.id)}
-              className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded"
+              disabled={deletePost.isPending}
+              className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded disabled:opacity-50"
             >
-              Delete
+              {deletePost.isPending ? 'Deleting...' : 'Delete'}
             </button>
           </>
         )}

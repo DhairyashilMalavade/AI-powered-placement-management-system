@@ -45,9 +45,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-3">
                 <span className="text-sm text-green-700">Resume uploaded</span>
                 <a
-                  href={`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'}/resumes/${profile.resumeFilePath}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={`${(import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1').replace(/\/$/, '')}/resumes/${profile.resumeFilePath}`}
                   className="text-sm text-blue-600 hover:underline"
                 >
                   Download

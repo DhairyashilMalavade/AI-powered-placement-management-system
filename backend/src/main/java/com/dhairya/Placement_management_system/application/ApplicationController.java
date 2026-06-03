@@ -2,6 +2,7 @@ package com.dhairya.Placement_management_system.application;
 
 import com.dhairya.Placement_management_system.application.dto.ApplicationResponse;
 import com.dhairya.Placement_management_system.application.dto.CreateApplicationRequest;
+import com.dhairya.Placement_management_system.application.dto.ScoredApplicationResponse;
 import com.dhairya.Placement_management_system.common.dto.ApiResponse;
 import com.dhairya.Placement_management_system.common.dto.PagedResponse;
 import jakarta.validation.Valid;
@@ -36,6 +37,13 @@ public class ApplicationController {
                                                     Authentication auth) {
         UUID userId = (UUID) auth.getPrincipal();
         return ApiResponse.created(applicationService.create(request, userId));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ApiResponse<ApplicationResponse> getById(@PathVariable UUID id, Authentication auth) {
+        UUID userId = (UUID) auth.getPrincipal();
+        return ApiResponse.success(applicationService.getById(id, userId));
     }
 
     @GetMapping("/my")
@@ -89,5 +97,15 @@ public class ApplicationController {
                                                            Authentication auth) {
         UUID userId = (UUID) auth.getPrincipal();
         return ApiResponse.success(applicationService.updateStatus(id, body.get("status"), userId));
+    }
+
+    @GetMapping("/job-post/{jobPostId}/ranked")
+    @PreAuthorize("isAuthenticated()")
+    public ApiResponse<PagedResponse<ScoredApplicationResponse>> getRanked(
+            @PathVariable UUID jobPostId,
+            @PageableDefault(size = 20) Pageable pageable,
+            Authentication auth) {
+        UUID userId = (UUID) auth.getPrincipal();
+        return ApiResponse.success(applicationService.getRankedApplications(jobPostId, userId, pageable));
     }
 }

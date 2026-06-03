@@ -23,7 +23,7 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: dev
-      JWT_SECRET: dev-secret-key-min-256-bits-long-for-hs256-algorithm
+      JWT_SECRET: placement-demo-jwt-secret-key-2026-for-hs256
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/placement_db
     depends_on:
       postgres:

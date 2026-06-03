@@ -36,6 +36,11 @@ public class AuthController {
         return ApiResponse.success(response);
     }
 
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout() {
+        return ApiResponse.success("Logged out successfully", null);
+    }
+
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof UUID principalId)) {

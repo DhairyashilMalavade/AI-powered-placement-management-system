@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getMyApplications, getApplicationsByJobPost, getApplicationsByDrive, withdrawApplication, updateApplicationStatus } from '../api/applications'
+import { getMyApplications, getApplicationsByJobPost, getApplicationsByDrive, withdrawApplication, updateApplicationStatus, getRankedApplications } from '../api/applications'
 import { createApplication } from '../api/applications'
 import toast from 'react-hot-toast'
 
@@ -53,6 +53,14 @@ export function useWithdrawApplication() {
     onError: (err: Error) => {
       toast.error(err.message || 'Withdrawal failed')
     },
+  })
+}
+
+export function useRankedApplications(jobPostId: string, page = 0, size = 20) {
+  return useQuery({
+    queryKey: ['applications', 'ranked', jobPostId, page, size],
+    queryFn: () => getRankedApplications(jobPostId, page, size),
+    enabled: !!jobPostId,
   })
 }
 

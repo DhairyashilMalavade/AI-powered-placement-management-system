@@ -33,6 +33,10 @@ apiClient.interceptors.response.use(
       toast.error('Session expired. Please sign in again.')
       window.location.href = '/login'
     }
+    const message = error.response?.data?.message
+    if (message) {
+      error.message = message
+    }
     return Promise.reject(error)
   },
 )

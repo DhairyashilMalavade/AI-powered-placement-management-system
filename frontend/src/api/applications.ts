@@ -1,6 +1,6 @@
 import apiClient from './client'
 import type { ApiResponse, PagedResponse } from '../types/api'
-import type { ApplicationResponse } from '../types/application'
+import type { ApplicationResponse, ScoredApplicationResponse } from '../types/application'
 
 export async function createApplication(jobPostId: string): Promise<ApplicationResponse> {
   const res = await apiClient.post<ApiResponse<ApplicationResponse>>('/applications', { jobPostId })
@@ -29,5 +29,10 @@ export async function withdrawApplication(id: string): Promise<ApplicationRespon
 
 export async function updateApplicationStatus(id: string, status: string): Promise<ApplicationResponse> {
   const res = await apiClient.patch<ApiResponse<ApplicationResponse>>(`/applications/${id}/status`, { status })
+  return res.data.data
+}
+
+export async function getRankedApplications(jobPostId: string, page = 0, size = 20): Promise<PagedResponse<ScoredApplicationResponse>> {
+  const res = await apiClient.get<ApiResponse<PagedResponse<ScoredApplicationResponse>>>(`/applications/job-post/${jobPostId}/ranked`, { params: { page, size } })
   return res.data.data
 }

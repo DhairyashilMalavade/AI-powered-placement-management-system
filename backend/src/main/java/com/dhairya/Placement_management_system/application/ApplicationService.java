@@ -1,10 +1,14 @@
 package com.dhairya.Placement_management_system.application;
 
+import com.dhairya.Placement_management_system.ai.AIScorer;
+import com.dhairya.Placement_management_system.ai.ScoringResult;
 import com.dhairya.Placement_management_system.application.dto.ApplicationResponse;
 import com.dhairya.Placement_management_system.application.dto.CreateApplicationRequest;
+import com.dhairya.Placement_management_system.application.dto.ScoredApplicationResponse;
 import com.dhairya.Placement_management_system.common.dto.PagedResponse;
 import com.dhairya.Placement_management_system.common.exception.BusinessException;
 import com.dhairya.Placement_management_system.common.exception.ResourceNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import com.dhairya.Placement_management_system.drive.Drive;
 import com.dhairya.Placement_management_system.drive.DriveRepository;
 import com.dhairya.Placement_management_system.drive.dto.DriveResponse;
@@ -13,11 +17,15 @@ import com.dhairya.Placement_management_system.jobpost.JobPostRepository;
 import com.dhairya.Placement_management_system.jobpost.dto.JobPostResponse;
 import com.dhairya.Placement_management_system.notification.NotificationService;
 import com.dhairya.Placement_management_system.resume.FileStorageService;
+import com.dhairya.Placement_management_system.user.ParsedResume;
+import com.dhairya.Placement_management_system.user.ParsedResumeRepository;
 import com.dhairya.Placement_management_system.user.StudentProfile;
 import com.dhairya.Placement_management_system.user.StudentProfileRepository;
 import com.dhairya.Placement_management_system.user.User;
 import com.dhairya.Placement_management_system.user.UserRepository;
 import com.dhairya.Placement_management_system.user.dto.UserResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -25,10 +33,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
 public class ApplicationService {
+
+    private static final Logger log = LoggerFactory.getLogger(ApplicationService.class);
 
     private static final java.util.List<String> VALID_STATUSES = java.util.List.of(
         "APPLIED", "UNDER_REVIEW", "SHORTLISTED", "ACCEPTED", "REJECTED", "WITHDRAWN");
@@ -43,6 +54,8 @@ public class ApplicationService {
     private final DriveRepository driveRepository;
     private final NotificationService notificationService;
     private final FileStorageService fileStorageService;
+    private final AIScorer aiScorer;
+    private final ParsedResumeRepository parsedResumeRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               JobPostRepository jobPostRepository,
@@ -50,7 +63,9 @@ public class ApplicationService {
                               StudentProfileRepository studentProfileRepository,
                               DriveRepository driveRepository,
                               NotificationService notificationService,
-                              FileStorageService fileStorageService) {
+                              FileStorageService fileStorageService,
+                              AIScorer aiScorer,
+                              ParsedResumeRepository parsedResumeRepository) {
         this.applicationRepository = applicationRepository;
         this.jobPostRepository = jobPostRepository;
         this.userRepository = userRepository;
@@ -58,6 +73,8 @@ public class ApplicationService {
         this.driveRepository = driveRepository;
         this.notificationService = notificationService;
         this.fileStorageService = fileStorageService;
+        this.aiScorer = aiScorer;
+        this.parsedResumeRepository = parsedResumeRepository;
     }
 
     @Transactional
@@ -106,7 +123,32 @@ public class ApplicationService {
             student.getFullName() + " has applied to \"" + jobPost.getTitle() + "\".",
             "/drives/" + jobPost.getDrive().getId());
 
+        triggerScoring(application, jobPost, drive, studentId);
+
         return toResponse(application);
+    }
+
+    private void triggerScoring(Application application, JobPost jobPost, Drive drive, UUID studentId) {
+        try {
+            ParsedResume parsed = parsedResumeRepository.findByStudentId(studentId).orElse(null);
+            StudentProfile profile = studentProfileRepository.findByUserId(studentId).orElse(null);
+            if (parsed != null && profile != null) {
+                ScoringResult result = aiScorer.score(drive, parsed, profile);
+
+                application.setAiScore(java.math.BigDecimal.valueOf(result.getScore()));
+                application.setScoringRationale(result.getRationale());
+                application.setScoringFeedback(result.getFeedback());
+                application.setScoringVersion(result.getVersion());
+                applicationRepository.save(application);
+
+                notificationService.create(studentId, "Application Scored",
+                    "Your application for \"" + jobPost.getTitle() + "\" has been scored: "
+                    + result.getScore() + "/100.",
+                    "/applications");
+            }
+        } catch (Exception e) {
+            log.warn("AI scoring failed for application {}", application.getId(), e);
+        }
     }
 
     public PagedResponse<ApplicationResponse> getMyApplications(UUID studentId, Pageable pageable) {
@@ -252,6 +294,93 @@ public class ApplicationService {
                     "/drives/" + jobPost.getDrive().getId());
             }
         }
+    }
+
+    public ApplicationResponse getById(UUID applicationId, UUID currentUserId) {
+        Application application = applicationRepository.findById(applicationId)
+            .orElseThrow(() -> new ResourceNotFoundException("Application", "id", applicationId));
+
+        JobPost jobPost = application.getJobPost();
+        Drive drive = jobPost.getDrive();
+
+        boolean isOwner = application.getStudent().getId().equals(currentUserId);
+        boolean isRecruiter = jobPost.getRecruiter().getId().equals(currentUserId);
+        boolean isPO = drive.getCreatedBy().getId().equals(currentUserId);
+        boolean isAdmin = hasExactRole(currentUserId, "ADMIN");
+
+        if (!isOwner && !isRecruiter && !isPO && !isAdmin) {
+            throw new AccessDeniedException("Access denied");
+        }
+
+        return toResponse(application);
+    }
+
+    public PagedResponse<ScoredApplicationResponse> getRankedApplications(UUID jobPostId, UUID currentUserId, Pageable pageable) {
+        JobPost jobPost = jobPostRepository.findById(jobPostId)
+            .orElseThrow(() -> new ResourceNotFoundException("JobPost", "id", jobPostId));
+        Drive drive = jobPost.getDrive();
+
+        boolean isRecruiter = jobPost.getRecruiter().getId().equals(currentUserId);
+        boolean isPO = drive.getCreatedBy().getId().equals(currentUserId);
+        boolean isAdmin = hasExactRole(currentUserId, "ADMIN");
+
+        if (isRecruiter || isPO || isAdmin) {
+            Page<Application> apps = applicationRepository.findRankedByJobPostId(jobPostId, pageable);
+            List<ScoredApplicationResponse> content = apps.getContent().stream()
+                .map(this::toScoredResponseFull)
+                .toList();
+            return PagedResponse.from(
+                new org.springframework.data.domain.PageImpl<>(content, pageable, apps.getTotalElements()));
+        }
+
+        Application app = applicationRepository.findByStudentIdAndJobPostId(currentUserId, jobPostId)
+            .orElseThrow(() -> new AccessDeniedException("Access denied"));
+        ScoredApplicationResponse resp = toScoredResponseStudent(app);
+        List<ScoredApplicationResponse> content = List.of(resp);
+        return new PagedResponse<>(content, 0, 1, 1, 1, true);
+    }
+
+    private boolean hasExactRole(UUID userId, String expectedRole) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) return false;
+        return expectedRole.equals(user.getRole());
+    }
+
+    private ScoredApplicationResponse toScoredResponseFull(Application app) {
+        int rank = computeRank(app);
+        return new ScoredApplicationResponse(
+            app.getId(),
+            app.getStudent().getFullName(),
+            app.getStudent().getId().toString(),
+            app.getStatus(),
+            app.getAiScore(),
+            app.getScoringFeedback(),
+            rank,
+            app.getScoringRationale(),
+            app.getScoringVersion()
+        );
+    }
+
+    private ScoredApplicationResponse toScoredResponseStudent(Application app) {
+        int rank = computeRank(app);
+        return new ScoredApplicationResponse(
+            app.getId(),
+            app.getStudent().getFullName(),
+            app.getStudent().getId().toString(),
+            app.getStatus(),
+            app.getAiScore(),
+            app.getScoringFeedback(),
+            rank,
+            null,
+            null
+        );
+    }
+
+    private int computeRank(Application app) {
+        if (app.getAiScore() == null) return -1;
+        long better = applicationRepository.countByJobPostIdAndAiScoreGreaterThan(
+            app.getJobPost().getId(), app.getAiScore());
+        return (int) better + 1;
     }
 
     public Resource downloadResume(UUID applicationId, UUID currentUserId) {

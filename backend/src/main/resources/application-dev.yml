@@ -6,7 +6,7 @@ spring:
       enabled: true
 
 jwt:
-  secret: dev-secret-key-min-256-bits-long-for-hs256-algorithm
+  secret: ${JWT_SECRET}
 
 logging:
   level:

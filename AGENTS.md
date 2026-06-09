@@ -41,7 +41,7 @@ docker compose exec postgres psql -U postgres -d placement_db  # Query DB
 
 - **Hibernate DDL**: `validate` — Flyway owns the schema. Never change DDL directly; write a new migration.
 - **API response wrapper**: All endpoints return `ApiResponse<T>` with `{ status, message, data, timestamp }`. List endpoints return `ApiResponse<PagedResponse<T>>` with `{ content: T[], page, size, totalElements, totalPages, last }` (default page size 20). Frontend must unwrap `.data` from the response.
-- **Auth**: Register + login return JWT (HS256, 24h expiry, `Authorization: Bearer <token>`). Key from `JWT_SECRET` env var (fallback `dev-secret-key-min-256-bits-long-for-hs256-algorithm`). Missing/invalid JWT → 401; authenticated but unauthorized → 403.
+- **Auth**: Register + login return JWT (HS256, 24h expiry, `Authorization: Bearer <token>`). Key from `JWT_SECRET` env var (no hardcoded fallback; must be set via `.env` or environment). Missing/invalid JWT → 401; authenticated but unauthorized → 403.
 - **Register auto-creates profiles**: `AuthService.register()` creates `StudentProfile`/`RecruiterProfile`/`PlacementOfficerProfile` with placeholder values (`"Pending"`) for NOT NULL columns. Profile update endpoints at `PUT /api/v1/profile/{student,recruiter,po}`.
 - **Registration roles**: `STUDENT`, `PO`, `RECRUITER`, `ADMIN` (ADMIN not exposed in frontend dropdown).
 - **Frontend auth**: Zustand store persisted to localStorage key `auth-storage`. Axios interceptor reads token from store, redirects to `/login` on 401. No Vite proxy — frontend talks directly to backend via `VITE_API_URL` env var (fallback `http://localhost:8080/api/v1`).

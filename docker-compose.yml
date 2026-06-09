@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: placement_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -23,8 +23,9 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: dev
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-min-256-bits-long-for-hs256-algorithm}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/placement_db
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     depends_on:
       postgres:
         condition: service_healthy

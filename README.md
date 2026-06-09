@@ -23,7 +23,7 @@ A full-stack web application for managing campus placements, featuring AI-driven
 | Layer | Technology | Version |
 |-------|-----------|---------|
 | Backend | Java, Spring Boot | 21, 3.5.14 |
-| Auth | JWT (HS384, JJWT 0.12.6), Spring Security | 24h expiry |
+| Auth | JWT (HMAC-SHA, JJWT 0.12.6), Spring Security | 24h expiry |
 | Database | PostgreSQL, Flyway, Hibernate | 16, 16 migrations |
 | AI/ML | Apache Tika, keyword scoring | 3.1.0 |
 | Frontend | React, TypeScript, Vite | 19, 6.0, 8.0 |
@@ -83,6 +83,7 @@ docker compose up -d postgres
 ```bash
 cd backend
 export JWT_SECRET="your-256-bit-secret"
+export SPRING_DATASOURCE_PASSWORD=postgres
 ./mvnw spring-boot:run
 ```
 
@@ -110,7 +111,7 @@ The frontend starts on `http://localhost:5173`.
 docker compose up -d --build
 ```
 
-This starts PostgreSQL + the backend on port 8080. Frontend still needs `npm run dev` separately.
+This starts PostgreSQL + the backend on port 8080. Docker Compose provides demo defaults for `JWT_SECRET` and `SPRING_DATASOURCE_PASSWORD`, so no `.env` file is needed. Frontend still needs `npm run dev` separately.
 
 ## Project Structure
 
@@ -296,7 +297,9 @@ Current scoring uses keyword matching only. Future versions will integrate Gemin
 | `JWT_SECRET` | Yes | — | HS256 key (min 256 bits) |
 | `SPRING_DATASOURCE_URL` | No | `jdbc:postgresql://localhost:5432/placement_db` | DB URL |
 | `SPRING_DATASOURCE_USERNAME` | No | `postgres` | DB user |
-| `SPRING_DATASOURCE_PASSWORD` | No | `postgres` | DB password |
+| `SPRING_DATASOURCE_PASSWORD` | Yes¹ | — | DB password |
+
+¹ Required when running `./mvnw spring-boot:run` directly. Docker Compose injects this automatically via environment variable defaults.
 
 ### Frontend
 
@@ -306,9 +309,9 @@ Current scoring uses keyword matching only. Future versions will integrate Gemin
 
 ## Security
 
-- JWT-based stateless authentication (HS384, 24h expiry)
+- JWT-based stateless authentication (HMAC-SHA, 24h expiry)
 - BCrypt password hashing
-- Role-based access with `@PreAuthorize` (ADMIN > PO > RECRUITER > STUDENT hierarchy)
+- Role-based access with `@PreAuthorize` (exact role matching; no hierarchy)
 - Secure file access: students can only download their own resume via the `/resumes/{filename}` endpoint
 - Cross-application resume access is gated: the `/applications/{id}/resume` endpoint verifies ownership
 - Custom 401 JSON response for unauthenticated requests

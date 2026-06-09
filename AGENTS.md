@@ -33,8 +33,9 @@ docker compose exec postgres psql -U postgres -d placement_db  # Query DB
 - **Backend** (`com.dhairya.Placement_management_system`): packages — `auth/`, `user/`, `admin/`, `drive/`, `jobpost/`, `application/`, `notification/`, `resume/`, `ai/`, `analytics/`, `insights/`, `common/`, `config/`
 - **Frontend** (`frontend/src/`): `pages/`, `hooks/` (TanStack React Query), `api/` (Axios), `store/` (Zustand), `types/`, `components/`
 - **API**: `http://localhost:8080/api/v1/` — all endpoints under `/api/v1/`
-- **Roles**: `ADMIN > PO > RECRUITER > STUDENT` (Spring Security role hierarchy, string-based, no enum)
-  - `@PreAuthorize("hasRole('STUDENT')")` matches ALL roles due to hierarchy. For exact role checks, manually verify `ROLE_STUDENT` in the GrantedAuthority set.
+- **Roles**: string-based (no enum): `STUDENT`, `RECRUITER`, `PO`, `ADMIN`. Granted authority is `ROLE_<role>`.
+  - No `RoleHierarchy` bean — `@PreAuthorize("hasRole('STUDENT')")` matches **only** STUDENT.
+  - Service layer uses manual `hasExactRole()` for exact matching where `@PreAuthorize` is insufficient (e.g., `ApplicationService`, `InsightsService`).
 - **Auth principal type**: `UUID` — controllers cast `auth.getPrincipal()` to `(UUID)`
 
 ## Key conventions
@@ -44,12 +45,25 @@ docker compose exec postgres psql -U postgres -d placement_db  # Query DB
 - **Auth**: Register + login return JWT (HS256, 24h expiry, `Authorization: Bearer <token>`). Key from `JWT_SECRET` env var (no hardcoded fallback; must be set via `.env` or environment). Missing/invalid JWT → 401; authenticated but unauthorized → 403.
 - **Register auto-creates profiles**: `AuthService.register()` creates `StudentProfile`/`RecruiterProfile`/`PlacementOfficerProfile` with placeholder values (`"Pending"`) for NOT NULL columns. Profile update endpoints at `PUT /api/v1/profile/{student,recruiter,po}`.
 - **Registration roles**: `STUDENT`, `PO`, `RECRUITER`, `ADMIN` (ADMIN not exposed in frontend dropdown).
+- **Local dev setup**: Copy `.env.example` to `.env` and fill placeholders. Docker Compose provides `:-` defaults so `docker compose up -d` works without a `.env` file.
+- **Frontend .env** only needs `VITE_API_URL` (`frontend/.env.example`). Root `.env.example` has the full backend env vars.
 - **Frontend auth**: Zustand store persisted to localStorage key `auth-storage`. Axios interceptor reads token from store, redirects to `/login` on 401. No Vite proxy — frontend talks directly to backend via `VITE_API_URL` env var (fallback `http://localhost:8080/api/v1`).
-- **Frontend stack**: TanStack React Query for data fetching, react-hook-form + zod for forms, react-hot-toast for notifications, react-router-dom v7 for routing, Tailwind CSS v4 (`@tailwindcss/vite` plugin).
 - **File uploads**: Max 5MB PDF, stored in `./uploads`. Resume upload: POST `/api/v1/resumes/upload` (STUDENT only). Resume download: GET `/api/v1/applications/{id}/resume` (authenticated users, owner-only access check).
 - **Pagination**: Frontend uses `Pagination` component (`components/shared/Pagination.tsx`) with `page` state and `onPageChange` callback. Always reset page to 0 after create/delete via mutation `onSuccess`.
-- **Backend**: constructor injection (no `@Autowired` on fields), Lombok on all entities/DTOs (`@Getter @Setter`).
 - **Frontend TS strict**: `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax` (use `import type`), `erasableSyntaxOnly` (no enums/namespaces). Build fails on any of these.
+
+## Known Architectural Decisions
+
+- Resume snapshots are preferred for application downloads.
+  If snapshot is missing, fallback to the student's current profile resume.
+- Rankings exclude withdrawn applications.
+- Ties share the same rank number.
+- Students never receive scoring rationale.
+  Recruiters, POs, and Admins can view rationale.
+- POs have organization-wide read access to applications
+  but ownership is still enforced for mutations.
+- Docker Compose provides development defaults via `:-` syntax;
+  production should override via environment variables.
 
 ## Database
 
@@ -63,7 +77,7 @@ docker compose exec postgres psql -U postgres -d placement_db  # Query DB
   - Commands: `./mvnw test` (all, ~10s), `./mvnw test -Dtest=AuthControllerTest` (single)
   - Pattern: `TestRestTemplate` for HTTP, `ObjectMapper` for JSON, helper methods (`registerUser`, `jsonRequest`) from base class
   - No test DB cleanup between classes — each test generates unique emails. Asserts use `>=` not exact counts.
-- **Frontend**: Vitest 3 + jsdom + React Testing Library. Test files in `src/test/`. Vitest config in separate `vitest.config.ts` (not `vite.config.ts` — avoids TypeScript version conflict). Commands: `npm test` (vitest run), `npm run test:watch` (vitest watch).
+- **Frontend**: Vitest 3 + jsdom + React Testing Library. Test files in `src/test/` (only 1 file: `DrivesPage.test.tsx`). Vitest config in separate `vitest.config.ts` (not `vite.config.ts` — avoids TypeScript version conflict). Commands: `npm test` (vitest run), `npm run test:watch` (vitest watch).
 
 ## Not yet built
 
